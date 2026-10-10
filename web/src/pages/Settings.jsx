@@ -7,7 +7,8 @@ const TABS = [
   { id: 'bank', label: 'Bank details' },
   { id: 'invoicing', label: 'Invoicing' },
   { id: 'data', label: 'Backups & export' },
-  { id: 'security', label: 'Password' },
+  { id: 'history', label: 'History' },
+  { id: 'security', label: 'Security' },
 ];
 
 function useSave(section, onSaved) {
@@ -64,24 +65,61 @@ function SectionForm({ section, initial, title, lead, children }) {
   );
 }
 
+function toCSV(rows) {
+  if (!rows.length) return '';
+  const cols = Object.keys(rows[0]);
+  const esc = (v) => {
+    if (v === null || v === undefined) return '';
+    const t = String(v);
+    return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  return [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c])).join(','))].join('\n');
+}
+
+function download(name, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// The zip is built here on your device (keeps the free server plan happy).
+async function exportEverything() {
+  const [{ zipSync, strToU8 }, data] = await Promise.all([import('fflate'), api('/settings/export')]);
+  const files = {
+    'everything.json': strToU8(JSON.stringify(data, null, 2)),
+    'README.txt': strToU8(
+      'Your ctrinn DJ HQ export.\n\n' +
+      '- everything.json: every record and setting\n' +
+      '- csv/: one spreadsheet per section (opens in Excel, Numbers or Google Sheets)\n'
+    ),
+  };
+  for (const [table, rows] of Object.entries(data.tables)) files[`csv/${table}.csv`] = strToU8(toCSV(rows));
+  download(`ctrinn-export-${data.exportedAt.slice(0, 10)}.zip`, new Blob([zipSync(files)], { type: 'application/zip' }));
+}
+
+const fmtTime = (iso) => new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
 function DataTab({ settings, reload }) {
   const [msg, setMsg] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState('');
+  const [backups, setBackups] = useState([]);
   const b = settings.backups;
-  const [folder, setFolder] = useState(b.folder);
-  const { save, msg: saveMsg, busy: saving } = useSave('backups', reload);
+  const loadBackups = () => api('/settings/backups').then(setBackups).catch(() => {});
+  useEffect(() => { loadBackups(); }, []);
 
-  const backupNow = async () => {
-    setBusy(true);
+  const run = (label, fn, okText) => async () => {
+    setBusy(label);
     setMsg(null);
     try {
-      await api('/settings/backup-now', { method: 'POST' });
-      setMsg({ ok: true, text: 'Backup saved' });
-      reload();
+      await fn();
+      if (okText) setMsg({ ok: true, text: okText });
     } catch (err) {
       setMsg({ ok: false, text: err.message });
     }
-    setBusy(false);
+    setBusy('');
   };
 
   const sample = async (action) => {
@@ -95,39 +133,36 @@ function DataTab({ settings, reload }) {
       <div className="card">
         <h3>Backups</h3>
         <p className="lead">
-          Every night at 3am the app saves a copy of everything. Point it at an iCloud Drive or Google Drive folder and
-          the copies also end up safely off this laptop.
+          Your data is saved in Cloudflare's cloud, which can rewind it to any minute in the last 7 days. On top of that,
+          the app saves a full copy every night and keeps the last 30.
         </p>
-        <div className="kv"><span>Saving to</span><span>{settings.meta.backupFolder}</span></div>
-        <div className="kv"><span>Last backup</span><span>{b.lastBackupAt ? new Date(b.lastBackupAt).toLocaleString('en-GB') : 'Not yet'}</span></div>
+        <div className="kv"><span>Last backup</span><span>{b.lastBackupAt ? fmtTime(b.lastBackupAt) : 'Not yet'}</span></div>
         {b.lastBackupError && <div className="msg err">Last problem: {b.lastBackupError}</div>}
-
-        <form onSubmit={(e) => { e.preventDefault(); save({ folder }); }} style={{ marginTop: 16 }}>
-          {settings.meta.suggestedFolders.length > 0 && (
-            <div className="field">
-              <label>Found on this Mac — tap to use</label>
-              <div className="btn-row">
-                {settings.meta.suggestedFolders.map((f) => (
-                  <button type="button" key={f.path} className="btn small" onClick={() => setFolder(f.path)}>{f.label}</button>
-                ))}
+        <div className="btn-row" style={{ marginTop: 14 }}>
+          <button className="btn primary" disabled={!!busy}
+            onClick={run('backup', async () => { await api('/settings/backup-now', { method: 'POST' }); reload(); loadBackups(); }, 'Backup saved')}>
+            {busy === 'backup' ? 'Backing up…' : 'Back up now'}
+          </button>
+        </div>
+        {backups.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            {backups.slice(0, 5).map((k) => (
+              <div className="kv" key={k.key}>
+                <span>{fmtTime(k.at)}</span>
+                <span><a style={{ color: 'var(--gold)' }} href={`/api/settings/backups/${encodeURIComponent(k.key)}`}>Download</a></span>
               </div>
-            </div>
-          )}
-          <Field label="Backup folder" value={folder} onChange={setFolder}
-            hint="Leave empty to keep backups inside the app's own folder on this Mac." />
-          <div className="btn-row">
-            <button className="btn" disabled={saving}>Save folder</button>
-            <button type="button" className="btn primary" onClick={backupNow} disabled={busy}>{busy ? 'Backing up…' : 'Back up now'}</button>
+            ))}
           </div>
-          {saveMsg && <div className={`msg ${saveMsg.ok ? 'ok' : 'err'}`}>{saveMsg.text}</div>}
-          {msg && <div className={`msg ${msg.ok ? 'ok' : 'err'}`}>{msg.text}</div>}
-        </form>
+        )}
       </div>
 
       <div className="card" style={{ marginTop: 14 }}>
         <h3>Export everything</h3>
-        <p className="lead">One zip file with all your bookings, invoices and clips as spreadsheets, plus every photo and video.</p>
-        <a className="btn block" href="/api/settings/export">Download export</a>
+        <p className="lead">One zip file with all your bookings, invoices and clips as spreadsheets, plus a complete data file.</p>
+        <button className="btn block" disabled={!!busy} onClick={run('export', exportEverything)}>
+          {busy === 'export' ? 'Preparing…' : 'Download export'}
+        </button>
+        {msg && <div className={`msg ${msg.ok ? 'ok' : 'err'}`}>{msg.text}</div>}
       </div>
 
       <div className="card" style={{ marginTop: 14 }}>
@@ -145,30 +180,43 @@ function DataTab({ settings, reload }) {
   );
 }
 
-function PasswordTab() {
-  const [current, setCurrent] = useState('');
-  const [next, setNext] = useState('');
-  const [msg, setMsg] = useState(null);
-  const submit = async (e) => {
-    e.preventDefault();
-    try {
-      await api('/auth/change-password', { method: 'POST', body: { current, next } });
-      setMsg({ ok: true, text: 'Password changed. Other devices have been logged out.' });
-      setCurrent('');
-      setNext('');
-    } catch (err) {
-      setMsg({ ok: false, text: err.message });
-    }
+function HistoryTab() {
+  const [rows, setRows] = useState(null);
+  useEffect(() => { api('/settings/activity').then(setRows).catch(() => setRows([])); }, []);
+  if (!rows) return null;
+  return (
+    <div className="list">
+      {rows.length ? rows.map((r) => (
+        <div className="row" key={r.id}>
+          <div className="row-main">
+            <div className="row-title">{r.action}</div>
+            {r.detail && <div className="row-sub">{r.detail}</div>}
+          </div>
+          <div className="row-end row-sub">{fmtTime(r.at)}</div>
+        </div>
+      )) : <div className="empty">Nothing yet.</div>}
+    </div>
+  );
+}
+
+function SecurityTab() {
+  const everywhere = async () => {
+    if (!confirm('Log out on every device, including this one?')) return;
+    await api('/auth/logout-everywhere', { method: 'POST' }).catch(() => {});
+    window.location.href = '/';
   };
   return (
-    <form className="card" onSubmit={submit}>
-      <h3>Change password</h3>
-      <p className="lead">Forgotten it? On your Mac, open Terminal in the app folder and run <code>npm run reset-password</code>.</p>
-      <Field label="Current password" type="password" value={current} onChange={setCurrent} autoComplete="current-password" />
-      <Field label="New password" type="password" value={next} onChange={setNext} autoComplete="new-password" hint="At least 8 characters" />
-      <button className="btn primary block">Change password</button>
-      {msg && <div className={`msg ${msg.ok ? 'ok' : 'err'}`}>{msg.text}</div>}
-    </form>
+    <div className="card">
+      <h3>Password</h3>
+      <p className="lead">
+        For safety, your password is kept in your Cloudflare account rather than in the app. To change it: Cloudflare
+        dashboard → Workers &amp; Pages → ctrinn-hq → Settings → Variables and Secrets → APP_PASSWORD → Edit. The new
+        password works straight away.
+      </p>
+      <h3 style={{ marginTop: 8 }}>Lost your phone?</h3>
+      <p className="lead">This logs out every device that's logged in. Then change your password as above.</p>
+      <button className="btn danger block" onClick={everywhere}>Log out every device</button>
+    </div>
   );
 }
 
@@ -211,7 +259,7 @@ export default function Settings() {
 
       {tab === 'bank' && (
         <SectionForm section="bank" initial={settings.bank} title="Bank details"
-          lead="Printed on your invoices so clients know where to pay. Stored only on your Mac.">
+          lead="Printed on your invoices so clients know where to pay. Only you can see this screen.">
           {(v, set) => (
             <>
               <Field label="Account name" value={v.accountName} onChange={set('accountName')} />
@@ -246,7 +294,8 @@ export default function Settings() {
       )}
 
       {tab === 'data' && <DataTab settings={settings} reload={reload} />}
-      {tab === 'security' && <PasswordTab />}
+      {tab === 'history' && <HistoryTab />}
+      {tab === 'security' && <SecurityTab />}
     </>
   );
 }

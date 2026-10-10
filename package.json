@@ -2,36 +2,31 @@
   "name": "ctrinn-dj-hq",
   "version": "0.1.0",
   "private": true,
-  "description": "Personal DJ management app for ctrinn — runs on your own Mac.",
+  "description": "Personal DJ management app for ctrinn \u2014 hosted free on Cloudflare.",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   },
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "vite build && wrangler dev --port 8787",
+    "dev:screens": "vite",
     "build": "vite build",
-    "start": "node server/index.js",
-    "setup": "npm install && npm run build",
-    "reset-password": "node scripts/reset-password.mjs",
-    "install-service": "node scripts/service.mjs install",
-    "uninstall-service": "node scripts/service.mjs uninstall",
-    "restart": "node scripts/service.mjs restart",
-    "update": "node scripts/update.mjs",
-    "test": "node --test test/*.test.js"
-  },
-  "dependencies": {
-    "archiver": "^8.0.0",
-    "better-sqlite3": "^13.0.3",
-    "cookie-parser": "^1.4.7",
-    "express": "^5.3.0"
+    "deploy": "vite build && wrangler deploy",
+    "test": "vite build && node --test test/*.test.js"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",
+    "fflate": "^0.8.3",
     "lucide-react": "^1.54.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
     "vite": "^8.3.4",
-    "vite-plugin-pwa": "^2.0.0"
+    "vite-plugin-pwa": "^2.0.0",
+    "wrangler": "^4.149.0"
+  },
+  "dependencies": {
+    "hono": "^4.13.13",
+    "jose": "^6.2.12"
   }
 }

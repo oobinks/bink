@@ -1,50 +1,51 @@
-// Run with: npm test
+// Runs the real app on Cloudflare's local simulator with a fresh database and checks it end to end.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'djhq-test-'));
-let app;
-let server;
-let base;
-let cookie = '';
+const PORT = 8790;
+const base = `http://127.0.0.1:${PORT}`;
+let proc;
 
-async function call(method, url, body) {
+before(async () => {
+  const state = fs.mkdtempSync(path.join(os.tmpdir(), 'djhq-'));
+  proc = spawn('npx', ['wrangler', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', state,
+    '--var', 'APP_PASSWORD:mirrorball-2026'], { stdio: 'ignore', detached: true });
+  for (let i = 0; i < 90; i++) {
+    try { await fetch(base + '/'); return; } catch { await new Promise((r) => setTimeout(r, 500)); }
+  }
+  throw new Error('The local simulator did not start');
+});
+
+after(() => process.kill(-proc.pid));
+
+let cookie = '';
+const call = async (method, url, body) => {
   const res = await fetch(base + url, {
-    method,
-    headers: { 'content-type': 'application/json', cookie },
-    body: body ? JSON.stringify(body) : undefined,
+    method, headers: { 'content-type': 'application/json', cookie }, body: body && JSON.stringify(body),
   });
   const set = res.headers.get('set-cookie');
   if (set) cookie = set.split(';')[0];
-  const type = res.headers.get('content-type') || '';
-  return { status: res.status, body: type.includes('json') ? await res.json() : await res.arrayBuffer() };
-}
+  return { status: res.status, body: await res.json().catch(() => null) };
+};
 
-before(async () => {
-  ({ app } = await import('../server/index.js'));
-  server = app.listen(0);
-  base = `http://127.0.0.1:${server.address().port}`;
-});
-
-after(() => server.close());
-
-test('first run asks for a password and blocks everything else', async () => {
-  assert.deepEqual((await call('GET', '/api/auth/status')).body, { needsSetup: true, loggedIn: false });
+test('everything is locked until you log in', async () => {
+  assert.deepEqual((await call('GET', '/api/auth/status')).body, { mode: 'password', loggedIn: false });
   assert.equal((await call('GET', '/api/dashboard')).status, 401);
-  assert.equal((await call('POST', '/api/auth/setup', { password: 'short' })).status, 400);
-  assert.equal((await call('POST', '/api/auth/setup', { password: 'discoball123' })).status, 200);
-  assert.equal((await call('POST', '/api/auth/setup', { password: 'another-one' })).status, 400);
+  assert.equal((await call('GET', '/api/settings/export')).status, 401);
+  assert.equal((await call('POST', '/api/auth/login', { password: 'wrong-password' })).status, 401);
+  assert.equal((await call('POST', '/api/auth/login', { password: 'mirrorball-2026' })).status, 200);
+  assert.match(cookie, /^djhq_session=[0-9a-f]{64}$/);
+  assert.deepEqual((await call('GET', '/api/auth/status')).body, { mode: 'password', loggedIn: true });
 });
 
-test('wrong passwords are rejected and lock out after 5 tries', async () => {
-  const saved = cookie;
-  cookie = '';
-  for (let i = 0; i < 5; i++) assert.equal((await call('POST', '/api/auth/login', { password: 'nope-nope' })).status, 401);
-  assert.equal((await call('POST', '/api/auth/login', { password: 'discoball123' })).status, 429);
-  cookie = saved;
+test('serves the app screens for any page address', async () => {
+  const res = await fetch(base + '/invoices/12');
+  assert.equal(res.status, 200);
+  assert.match(await res.text(), /<div id="root">/);
 });
 
 test('dashboard shows sample gigs, enquiries and overdue invoices', async () => {
@@ -57,29 +58,45 @@ test('dashboard shows sample gigs, enquiries and overdue invoices', async () => 
 });
 
 test('settings save known fields only and validate numbers', async () => {
-  const bad = await call('PUT', '/api/settings/invoicing', { paymentTermsDays: 'soon' });
-  assert.equal(bad.status, 400);
+  assert.equal((await call('PUT', '/api/settings/invoicing', { paymentTermsDays: 'soon' })).status, 400);
   const ok = await call('PUT', '/api/settings/bank', { sortCode: '12-34-56', notAField: 'x' });
   assert.equal(ok.body.sortCode, '12-34-56');
   assert.equal(ok.body.notAField, undefined);
-  assert.equal((await call('PUT', '/api/settings/auth', {})).status, 404);
+  assert.equal((await call('PUT', '/api/settings/backups', { lastBackupAt: 'x' })).status, 404);
   const s = (await call('GET', '/api/settings')).body;
   assert.equal(s.business.email, 'ctrinn.music@gmail.com');
-  assert.equal(s.auth, undefined, 'password hash never sent to the browser');
+  assert.equal(s.bank.sortCode, '12-34-56');
 });
 
-test('backup and export work, and the export has no password', async () => {
+test('changes are recorded in the history', async () => {
+  const rows = (await call('GET', '/api/settings/activity')).body;
+  assert.ok(rows.some((r) => r.action === 'Bank details updated'));
+});
+
+test('backups save and can be downloaded; export has every table', async () => {
   assert.equal((await call('POST', '/api/settings/backup-now')).status, 200);
-  const exp = await call('GET', '/api/settings/export');
-  assert.equal(exp.status, 200);
-  const text = Buffer.from(exp.body).toString('latin1');
-  assert.ok(text.includes('everything.json'));
-  assert.ok(!text.includes('passwordHash'));
+  const list = (await call('GET', '/api/settings/backups')).body;
+  assert.ok(list.length >= 1);
+  const dl = await fetch(base + '/api/settings/backups/' + encodeURIComponent(list[0].key), { headers: { cookie } });
+  assert.equal(dl.status, 200);
+  assert.ok((await dl.json()).tables.bookings.length > 0);
+  const exp = (await call('GET', '/api/settings/export')).body;
+  assert.deepEqual(Object.keys(exp.tables).sort(), ['activity', 'bookings', 'clips', 'invoices']);
 });
 
 test('sample data can be removed in one go', async () => {
-  const r = await call('POST', '/api/settings/sample-data', { action: 'clear' });
-  assert.equal(r.body.hasSampleData, false);
-  const d = (await call('GET', '/api/dashboard')).body;
-  assert.equal(d.upcomingGigs.length, 0);
+  assert.equal((await call('POST', '/api/settings/sample-data', { action: 'clear' })).body.hasSampleData, false);
+  assert.equal((await call('GET', '/api/dashboard')).body.upcomingGigs.length, 0);
+});
+
+test('logging out locks it again', async () => {
+  const saved = cookie;
+  assert.equal((await call('POST', '/api/auth/logout')).status, 200);
+  assert.equal((await fetch(base + '/api/dashboard', { headers: { cookie: saved } })).status, 401);
+});
+
+test('5 wrong passwords lock logins for 15 minutes', async () => {
+  cookie = '';
+  for (let i = 0; i < 5; i++) assert.equal((await call('POST', '/api/auth/login', { password: 'guess-' + i })).status, 401);
+  assert.equal((await call('POST', '/api/auth/login', { password: 'mirrorball-2026' })).status, 429);
 });

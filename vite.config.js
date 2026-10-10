@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   root: 'web',
   build: { outDir: '../dist', emptyOutDir: true },
-  server: { proxy: { '/api': 'http://127.0.0.1:4321' } },
+  server: { proxy: { '/api': 'http://127.0.0.1:8787' } },
   plugins: [
     react(),
     VitePWA({
@@ -26,8 +26,16 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        // Always ask the network for pages first, so Cloudflare's login screen
+        // can appear when your login expires. Falls back to the saved copy offline.
+        navigateFallback: null,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'pages', networkTimeoutSeconds: 4 },
+          },
+        ],
       },
     }),
   ],

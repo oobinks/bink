@@ -1,7 +1,7 @@
 # ctrinn DJ HQ
 
 Your personal DJ admin app: bookings, quotes, invoices, content and press pack, all in one place.
-It runs on your Mac, costs nothing, and only you can get in.
+It's hosted free on Cloudflare, works on any device, and only you can log in.
 
 **Status:** Phase 1 (foundations and dashboard) is done. Bookings, invoices, press pack and the content hub come next.
 
@@ -9,117 +9,96 @@ It runs on your Mac, costs nothing, and only you can get in.
 
 ## How it works (plain English)
 
-- **The app lives on your Mac.** All your data is in a single file (`data/app.db`) inside the app's folder.
-  Nothing is stored online unless you choose to.
-- **Your phone reaches it through Tailscale**, a free private connection between your own devices that works
-  anywhere, including on 4G/5G at a gig. Nobody else can see the app, not even people on the same Wi-Fi.
-- **You install it on your phone's home screen** so it looks and feels like a normal app.
-- **Backups** run every night at 3am. Point them at an iCloud Drive or Google Drive folder so there's a copy off the laptop.
-- **The Mac must be on, plugged in and awake.** If it's asleep, your phone can't reach the app. Reminders and other
-  scheduled jobs catch up as soon as it wakes.
+- **The app lives on Cloudflare**, a large web company with a generous free plan. Nothing runs on your laptop.
+- **Your data** is stored in a Cloudflare database. Cloudflare can rewind it to any minute in the last 7 days, and
+  the app also saves a full backup every night (it keeps the last 30).
+- **Only you can get in.** The app has its own password, which you choose and store in your Cloudflare account.
+  After 5 wrong guesses, logins are blocked for 15 minutes.
+- **Updates are automatic.** Whenever a new version is saved to GitHub, Cloudflare rebuilds and updates the app within
+  a couple of minutes. Your data is never touched by updates.
+- **Cost: £0.** No card is needed for anything in Phase 1.
 
 ---
 
-## One-time setup on your Mac (about 20 minutes)
+## One-time setup (about 10 minutes, all in your web browser)
 
-### 1. Install Node.js (the engine the app runs on)
-1. Go to <https://nodejs.org> and click the big **LTS** download button.
-2. Open the downloaded file and click through the installer.
+Cloudflare sometimes renames buttons. If something is worded slightly differently, look for the closest match.
 
-### 2. Download the app
-The easiest way is **GitHub Desktop**:
-1. Download it from <https://desktop.github.com> and sign in with your GitHub account.
-2. Choose **File → Clone repository**, pick `oobinks/bink`, and set the local path to your home folder
-   (for example `/Users/yourname/bink`). Click **Clone**.
+### 1. Create a free Cloudflare account
+Go to <https://dash.cloudflare.com/sign-up>, sign up, and confirm your email address.
 
-### 3. Build and start it
-1. Open **Terminal** (press ⌘ + Space, type *Terminal*, press Enter).
-2. Paste these lines one at a time, pressing Enter after each:
-   ```
-   cd ~/bink
-   npm run setup
-   npm run install-service
-   ```
-   `setup` downloads the parts the app needs and builds it, which takes a minute or two.
-   `install-service` starts the app and makes it **start by itself whenever your Mac starts**. It also
-   restarts the app if it ever crashes and stops the Mac sleeping while it's plugged in.
-3. On the Mac, open <http://localhost:4321> in Safari or Chrome. You'll be asked to **choose your password**.
-   That's your login from now on.
+### 2. Put the app online
+1. In the Cloudflare dashboard, open **Workers & Pages** (in the left menu, sometimes under **Compute**).
+2. Click **Create** (or **Create application**), then **Import a repository**.
+3. Click **Connect GitHub**, sign in to GitHub and allow Cloudflare access to the **oobinks/bink** repository.
+4. Choose **oobinks/bink**. On the settings screen:
+   - **Project name:** `ctrinn-hq` (it must be exactly this)
+   - **Build command:** `npm run build`
+   - **Deploy command:** `npx wrangler deploy` (usually filled in already)
+   - Leave everything else as it is.
+5. Click **Deploy**. It takes 1 to 2 minutes. Cloudflare creates the database and backup storage automatically.
+6. When it finishes, it shows your app's address, something like `https://ctrinn-hq.yourname.workers.dev`.
+   If you open it now, it will say **"Almost there"**. That's expected: it stays locked until you choose a password.
 
-### 4. Keep the Mac awake
-- **System Settings → Battery → Options →** turn on **"Prevent automatic sleeping on power adapter when the display is off"**.
-- Keep it **plugged in** and **leave the lid open**. You can turn the brightness all the way down. Closing the lid
-  sends a MacBook to sleep, whatever the settings say.
-- If the Mac restarts, for example after a macOS update, it needs to be logged in before the app starts again.
+### 3. Choose your password
+1. Still in **Workers & Pages**, click **ctrinn-hq**, then **Settings**, then **Variables and Secrets**.
+2. Click **Add**. Set **Type** to **Secret**, **Variable name** to `APP_PASSWORD`, and **Value** to your password.
+   Use at least 10 characters. A few random words works well, for example `disco-mirror-sunset-42`.
+3. Click **Deploy** (or **Save**).
 
-### 5. Connect your phone with Tailscale (free)
-1. On the Mac, install Tailscale from <https://tailscale.com/download> and sign up (signing in with Google is easiest).
-2. On your phone, install the **Tailscale** app from the App Store / Play Store and log in with the **same account**.
-3. In Mac Terminal, run:
-   ```
-   /Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg 4321
-   ```
-   The first time, it may show a link asking you to **enable HTTPS**. Open the link, click **Enable**, then run the
-   command again. It then prints your app's private address, something like `https://ctrinns-macbook.tail1234.ts.net`.
-4. On your phone, make sure Tailscale is switched on, open that address, and log in.
+### 4. Open it on your phone and add it to your home screen
+1. On your phone, open your app's address and log in. You'll stay logged in for 6 months.
+2. Add it to your home screen:
+   - **iPhone:** in **Safari**, tap **Share**, then **Add to Home Screen**.
+   - **Android:** in **Chrome**, tap **⋮**, then **Install app** (or **Add to Home screen**).
+3. On your laptop, bookmark it. In Chrome you can also click the install icon in the address bar.
 
-### 6. Put it on your home screen
-- **iPhone:** in **Safari**, tap the **Share** button, then **Add to Home Screen**.
-- **Android:** in **Chrome**, tap **⋮**, then **Install app** (or **Add to Home screen**).
-
-Do the same on your laptop's browser if you like (in Chrome: the install icon in the address bar).
-
-### 7. Set up backups
-In the app: **More → Settings → Backups & export**. Tap **iCloud Drive** or **Google Drive** if they're shown
-(they appear if they're set up on the Mac), then **Save folder** and **Back up now**.
-
-### 8. Add your bank details and remove the sample data
-- **Settings → Bank details**: enter your details. They only appear on invoices.
+### 5. Fill in your details
+- **More → Settings → Bank details**: enter your details. They only appear on invoices.
 - When you've finished exploring: **Settings → Backups & export → Remove sample data**. This only removes the pretend records.
 
 ---
 
-## Everyday commands (in Terminal, inside the app folder: `cd ~/bink`)
+## Everyday questions
 
-| What | Command |
-|---|---|
-| Update to the latest version | `npm run update` |
-| Restart the app | `npm run restart` |
-| Forgot your password | `npm run reset-password` |
-| Stop it starting automatically | `npm run uninstall-service` |
-| Run it by hand instead (stops when you close Terminal) | `npm start` |
+**How do I change my password?**
+Cloudflare dashboard → Workers & Pages → ctrinn-hq → Settings → Variables and Secrets → `APP_PASSWORD` → Edit.
 
-### Updating
-When a new phase is ready:
-1. In **GitHub Desktop**, click **Fetch origin**, then **Pull origin**.
-2. In Terminal: `cd ~/bink` then `npm run update`.
+**I've lost my phone.**
+In the app on another device: **Settings → Security → Log out every device**. Then change your password as above.
 
-The update backs up your data first, then rebuilds and restarts the app. Your data is never touched by updates.
+**How do I get a copy of all my data?**
+**Settings → Backups & export → Download export** gives you a zip containing spreadsheets of everything and a
+complete data file. The last 30 nightly backups can be downloaded from the same screen.
 
-### Restoring from a backup
-1. `npm run uninstall-service` (stops the app).
-2. In your backup folder, open `database/` and pick the copy you want (the date is in the file name).
-3. Copy it to `~/bink/data/`, replacing `app.db`, and delete `app.db-wal` and `app.db-shm` if they're there.
-4. `npm run install-service`.
+**How do I restore an older version of my data?**
+Ask me, and I'll walk you through it. Cloudflare can rewind the database to any minute in the last 7 days
+(their "Time Travel" feature), and the nightly backups go back 30 days.
 
-### Exporting everything
-**Settings → Backups & export → Download export** gives you a zip containing every record as spreadsheets (CSV),
-one complete data file (JSON), and all your photos and videos.
+**How do I see what's changed?**
+**More → Change history** lists every change with the date and time.
 
----
+**Can I use a nicer web address?**
+Yes, if you buy a domain (about £10 a year), for example `hq.ctrinn.co.uk`. That's optional; ask and I'll set it up.
 
-## Troubleshooting
-- **Phone says it can't reach the app:** check that the Mac is awake and plugged in, and that Tailscale is switched on in your phone's Tailscale app.
-- **Something looks broken:** run `npm run restart`. If it's still broken, the log is in `~/bink/data/app.log`.
-- **Locked out after wrong passwords:** wait 15 minutes, or run `npm run reset-password`.
+**Optional extra lock (Cloudflare Access).**
+If you'd like a second lock as well as your password (Cloudflare emails you a one-time code), it can be turned
+on later. Cloudflare may ask for a card to activate it, even though it's free for one person, so it's off by default.
 
 ---
 
 ## For developers
 
-- Server: Node.js + Express, SQLite (better-sqlite3), in `server/`. Migrations are an append-only list in `server/db.js`.
-- Screens: React + Vite PWA, in `web/`, built to `dist/` and served by Express.
-- Money is stored in pence. Dates are `YYYY-MM-DD`, worked out in Europe/London time.
-- `npm run dev` starts the server with auto-restart, plus live-reloading screens at <http://localhost:5173>.
-- `npm test` runs the API tests against a throwaway database.
-- `DATA_DIR`, `PORT` and `HOST` environment variables override the defaults (`./data`, `4321`, `127.0.0.1`).
+- **Server:** Cloudflare Worker (Hono) in `worker/`, with D1 (SQLite) for data and KV for nightly backups. Tables are created and
+  migrated automatically on first request. Migrations are an append-only list in `worker/db.js`.
+- **Screens:** React + Vite PWA in `web/`, built to `dist/` and served as Workers static assets.
+- **Login:** `APP_PASSWORD` secret plus a session cookie (hashed token in D1), with per-IP lockout. Optionally,
+  Cloudflare Access JWT verification as well, via `ACCESS_TEAM_DOMAIN`, `OWNER_EMAILS` and optionally `ACCESS_AUD`.
+- **Scheduled job:** cron at `0 2 * * *` UTC (the nightly backup; invoice chasing and clip reminders come later).
+- **Free-plan CPU limit (10ms per request):** heavy work such as zips and PDFs is done in the browser, not the Worker.
+- **Data conventions:** money is stored in pence. Dates are `YYYY-MM-DD`, worked out in Europe/London time.
+- **Commands:**
+  - `npm run dev` runs it locally at <http://localhost:8787>. Copy `.dev.vars.example` to `.dev.vars` to skip login locally.
+  - `npm run dev:screens` gives live-reloading screens on top of that.
+  - `npm test` runs the end-to-end tests on Cloudflare's local simulator, plus the login-security tests.
+  - `npm run deploy` deploys by hand. It's normally not needed, because pushing to GitHub deploys automatically.
