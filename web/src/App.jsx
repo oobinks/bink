@@ -8,6 +8,8 @@ import Settings from './pages/Settings.jsx';
 import More from './pages/More.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 import Login from './pages/Login.jsx';
+import Ideas from './pages/Ideas.jsx';
+import IdeaChat from './pages/IdeaChat.jsx';
 
 function Gate({ title, children }) {
   return (
@@ -31,8 +33,10 @@ export default function App() {
   const check = async () => {
     try {
       const status = await api('/auth/status');
-      if (status.mode === 'setup') return setState('setup');
-      if (!status.loggedIn) return setState(status.mode === 'password' ? 'login' : 'logged-out');
+      if (!status.loggedIn) {
+        if (status.mode === 'setup') return setState('setup');
+        return setState(status.mode === 'password' ? 'login' : 'logged-out');
+      }
       setUser(await api('/me'));
       setState('ok');
     } catch (e) {
@@ -95,6 +99,8 @@ export default function App() {
           text="Upload your clips after a gig, star the best, add captions and schedule them for Instagram and TikTok." />} />
         <Route path="more" element={<More />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="ideas" element={<Ideas />} />
+        <Route path="ideas/:n" element={<IdeaChat />} />
         <Route path="*" element={<Dashboard />} />
       </Route>
     </Routes>

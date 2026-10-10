@@ -1,0 +1,199 @@
+# Powers "Improve the app" inside DJ HQ.
+# Each idea is a GitHub issue labelled "app-idea". Your messages arrive as comments
+# (posted by the app). This workflow runs Claude Code to reply, build, publish or undo.
+#   normal message -> Claude replies (read-only, changes nothing)
+#   /build         -> Claude makes the change on branch idea-N, tests must pass, preview appears
+#   /ship          -> merges idea-N into main; Cloudflare puts it live
+#   /undo          -> reverts the last shipped change for this idea
+name: App ideas
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: idea-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  idea:
+    # Only ideas, only from you (people with write access), never from bots.
+    if: >-
+      contains(github.event.issue.labels.*.name, 'app-idea') &&
+      github.event.issue.pull_request == null &&
+      (github.event_name == 'issues' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association) ||
+       github.event_name == 'issue_comment' && github.event.comment.user.type != 'Bot' &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      N: ${{ github.event.issue.number }}
+      BODY: ${{ github.event.comment.body }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      MARKER: '<!-- ctrinn-claude -->'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Work out what to do
+        id: mode
+        run: |
+          cmd="$(printf '%s' "$BODY" | tr -d '[:space:]')"
+          case "$cmd" in
+            /build) echo "mode=build" >> "$GITHUB_OUTPUT" ;;
+            /ship)  echo "mode=ship"  >> "$GITHUB_OUTPUT" ;;
+            /undo)  echo "mode=undo"  >> "$GITHUB_OUTPUT" ;;
+            *)      echo "mode=chat"  >> "$GITHUB_OUTPUT" ;;
+          esac
+          git config user.name "ctrinn-hq-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Carry on from earlier work on this idea, if there is any.
+          if git ls-remote --exit-code --heads origin "idea-$N" >/dev/null; then
+            git checkout -B "idea-$N" "origin/idea-$N"
+          else
+            git checkout -B "idea-$N"
+          fi
+
+      - name: Helpers
+        run: |
+          cat > /tmp/helpers.sh <<'SH'
+          say() { printf '%s\n\n%s' "$MARKER" "$1" > /tmp/say.md; gh issue comment "$N" --body-file /tmp/say.md; }
+          status() {
+            for l in building ready live failed undone; do gh issue edit "$N" --remove-label "$l" >/dev/null 2>&1 || true; done
+            [ -n "$1" ] && { gh label create "$1" --force >/dev/null 2>&1 || true; gh issue edit "$N" --add-label "$1"; }
+          }
+          SH
+
+      - uses: actions/setup-node@v4
+        if: steps.mode.outputs.mode == 'chat' || steps.mode.outputs.mode == 'build'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        if: steps.mode.outputs.mode == 'chat' || steps.mode.outputs.mode == 'build'
+        run: npm ci && npm install -g @anthropic-ai/claude-code
+
+      - name: Check Claude is connected
+        if: steps.mode.outputs.mode == 'chat' || steps.mode.outputs.mode == 'build'
+        run: |
+          . /tmp/helpers.sh
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            say "I'm not connected yet. Add the CLAUDE_CODE_OAUTH_TOKEN secret on GitHub (see the README, 'Improve the app' setup)."
+            exit 1
+          fi
+
+      - name: Reply
+        if: steps.mode.outputs.mode == 'chat'
+        run: |
+          . /tmp/helpers.sh
+          gh issue view "$N" --json title,body,comments | node .github/scripts/thread.mjs > /tmp/thread.txt
+          cat > /tmp/prompt.md <<'P'
+          You are helping ctrinn (a DJ, not a developer) improve their DJ HQ app, through a chat inside the app.
+          Read CLAUDE.md first, then look at the code as needed to answer. You can only read code in this step.
+
+          Reply to ctrinn's latest message in the conversation below.
+          - Plain English, short, friendly. No code, no file names, no jargon.
+          - Ask at most 2 simple questions at a time.
+          - If something is a bad idea or there's a simpler way, say so.
+          - When the change is clear, finish with a short bullet list headed "What I'll change", then:
+            "Tap **Build it** when you're happy."
+          - Output only your reply.
+
+          CONVERSATION:
+          P
+          cat /tmp/thread.txt >> /tmp/prompt.md
+          claude -p "$(cat /tmp/prompt.md)" --allowedTools "Read,Glob,Grep" --disallowedTools "Edit,Write,Bash" \
+            --max-turns 25 --output-format text > /tmp/reply.md
+          say "$(cat /tmp/reply.md)"
+
+      - name: Build
+        if: steps.mode.outputs.mode == 'build'
+        run: |
+          . /tmp/helpers.sh
+          status building
+          gh issue view "$N" --json title,body,comments | node .github/scripts/thread.mjs > /tmp/thread.txt
+          cat > /tmp/prompt.md <<'P'
+          You are making a change to ctrinn's DJ HQ app that ctrinn has just approved in the conversation below.
+          Read CLAUDE.md first and follow its rules exactly.
+          - Make exactly the change agreed, nothing more.
+          - Run `npm test` and fix anything until it passes.
+          - Do not commit or push; that is done for you.
+          - Finally, output a short plain-English summary for ctrinn (3-5 bullets, no code, no file names),
+            and anything they should try on the preview.
+
+          CONVERSATION:
+          P
+          cat /tmp/thread.txt >> /tmp/prompt.md
+          claude -p "$(cat /tmp/prompt.md)" --permission-mode acceptEdits \
+            --allowedTools "Read,Glob,Grep,Edit,Write,Bash(npm test),Bash(npm run build),Bash(npm install:*),Bash(npm ci)" \
+            --max-turns 80 --output-format text > /tmp/summary.md || true
+
+          # Never let changes touch this automation.
+          git checkout -- .github 2>/dev/null || true
+          git clean -fdq .github 2>/dev/null || true
+          if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            status failed
+            say "I couldn't make that change. $(cat /tmp/summary.md)"
+            exit 0
+          fi
+          if ! npm test > /tmp/test.log 2>&1; then
+            status failed
+            say "I made the change but the safety checks failed, so nothing has gone live. Send me a message and I'll have another go."
+            exit 0
+          fi
+          git add -A
+          git commit -q -m "Idea #$N: $(gh issue view "$N" --json title -q .title)"
+          git push -u origin "idea-$N"
+          if ! gh pr view "idea-$N" >/dev/null 2>&1; then
+            gh pr create --head "idea-$N" --base main --title "Idea #$N: $(gh issue view "$N" --json title -q .title)" \
+              --body "From the in-app idea chat. Closes nothing; see #$N."
+          fi
+          status ready
+          say "$(cat /tmp/summary.md)
+
+          A **preview** of the changed app will appear in about 2 minutes. Try it, then tap **Make it live** if you're happy."
+
+      - name: Make it live
+        if: steps.mode.outputs.mode == 'ship'
+        run: |
+          . /tmp/helpers.sh
+          if ! gh pr view "idea-$N" --json state -q .state 2>/dev/null | grep -q OPEN; then
+            say "There's nothing new to make live. Tap **Build it** first."
+            exit 0
+          fi
+          gh pr merge "idea-$N" --squash --delete-branch
+          status live
+          say "Done. It'll be live in about 2 minutes. Refresh the app to see it. If you change your mind, tap **Undo**."
+
+      - name: Undo
+        if: steps.mode.outputs.mode == 'undo'
+        run: |
+          . /tmp/helpers.sh
+          sha="$(gh pr list --head "idea-$N" --state merged --json mergeCommit -q '.[0].mergeCommit.oid')"
+          if [ -z "$sha" ]; then
+            say "There's nothing live from this idea to undo."
+            exit 0
+          fi
+          git checkout main && git pull -q
+          if git revert --no-edit "$sha" && git push origin main; then
+            status undone
+            say "Undone. The app goes back to how it was in about 2 minutes."
+          else
+            say "I couldn't undo this automatically because later changes depend on it. Tell me what you'd like and I'll sort it."
+          fi
+
+      - name: Tell ctrinn if something broke
+        if: failure()
+        run: |
+          . /tmp/helpers.sh 2>/dev/null || exit 0
+          say "Sorry, something went wrong on my side. Send your message again in a minute. If it keeps happening, mention it to Claude in the main chat."

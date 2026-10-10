@@ -12,7 +12,7 @@
     "dev:screens": "vite",
     "build": "vite build",
     "deploy": "vite build && wrangler deploy",
-    "test": "vite build && node --test test/*.test.js"
+    "test": "vite build && node --test --test-concurrency=1 test/*.test.js"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",

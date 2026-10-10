@@ -1,0 +1,30 @@
+# DJ HQ — rules for Claude
+
+This is ctrinn's personal DJ admin app. ctrinn is a DJ, not a developer, and is the only user.
+Changes often come from the in-app "Improve the app" chat (`.github/workflows/app-ideas.yml`).
+
+## Talking to ctrinn
+- Plain English, short, friendly. No code, file names or jargon in replies.
+- At most 2 simple questions at a time. Prefer multiple-choice style ("A or B?").
+- If an idea is a bad idea or there's a simpler way, say so.
+
+## Hard rules when changing the app
+- **Never lose data.** Database changes go only as a new entry at the end of the `migrations` list in
+  `worker/db.js`, and must only add (new tables, new columns with defaults). Never drop, rename or rewrite
+  existing tables or columns, and never edit an existing migration.
+- **Stay on Cloudflare's free plan.** The Worker gets about 10ms of CPU per request: no heavy work on the
+  server (PDFs, zips and image processing happen in the browser). No new paid services.
+- **Don't touch** `.github/`, `wrangler.jsonc` bindings, login/security code in `worker/auth.js`, or secrets,
+  unless ctrinn explicitly asked for exactly that.
+- **Keep it simple:** mobile first, every common action in 3 taps or fewer, and match the existing look
+  (`web/src/styles.css` tokens: dark background, gold/pink accents).
+- Money is stored in pence (whole numbers). Dates are `YYYY-MM-DD`, and "today" means UK time (`todayUK()`).
+- Log meaningful edits with `logActivity()` so they show in Change history.
+- New sample/demo rows must set `is_sample = 1`.
+- `npm test` must pass. Add or update tests in `test/` for new server behaviour.
+
+## Project map
+- `worker/`: Cloudflare Worker (Hono). `index.js` routes, `db.js` schema and migrations, `auth.js` login,
+  `routes/*.js` API endpoints, `backup.js` nightly backups, `sample-data.js` demo data.
+- `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.
+- `test/`: Node tests. `app.test.js` and `ideas.test.js` run the real Worker on the local simulator.

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Settings, Newspaper, LogOut, ChevronRight, History } from 'lucide-react';
+import { Settings, Newspaper, LogOut, ChevronRight, History, Sparkles } from 'lucide-react';
 import { api } from '../api.js';
 
 export default function More() {
@@ -11,6 +11,11 @@ export default function More() {
     <>
       <div className="page-head"><h1>More</h1></div>
       <div className="list">
+        <Link to="/ideas" className="row">
+          <div className="alert-icon pink"><Sparkles size={20} /></div>
+          <div className="row-main"><div className="row-title">Improve the app</div><div className="row-sub">Chat with Claude about changes</div></div>
+          <ChevronRight size={18} color="var(--faint)" />
+        </Link>
         <Link to="/press" className="row">
           <div className="alert-icon violet"><Newspaper size={20} /></div>
           <div className="row-main"><div className="row-title">Press pack</div><div className="row-sub">Photos, bio, rider, public page</div></div>

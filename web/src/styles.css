@@ -227,3 +227,28 @@ a.row:active, button.row:active { background: var(--surface-2); }
   border-radius: 12px; background: var(--violet-soft); color: var(--violet); font-size: 13px; font-weight: 600;
 }
 .sample-banner a { margin-left: auto; text-decoration: underline; }
+
+/* ---------- Improve the app (chat) ---------- */
+.chat { display: flex; flex-direction: column; gap: 12px; }
+.chat-head { display: flex; align-items: center; gap: 12px; }
+.chat-head .row-title { white-space: normal; margin-bottom: 4px; }
+.icon-btn { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); flex-shrink: 0; }
+.messages { display: flex; flex-direction: column; gap: 10px; }
+.bubble { max-width: 88%; padding: 11px 14px; border-radius: 18px; white-space: pre-wrap; word-wrap: break-word; }
+.bubble.you { align-self: flex-end; background: linear-gradient(135deg, var(--gold), #ffa36b); color: #1a1408; border-bottom-right-radius: 6px; }
+.bubble.claude { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 6px; white-space: normal; }
+.bubble.claude p { margin: 0 0 8px; }
+.bubble.claude p:last-child, .bubble.claude ul:last-child { margin-bottom: 0; }
+.bubble.claude ul { margin: 0 0 8px; padding-left: 20px; }
+.bubble.typing { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.bubble.typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
+.bubble.typing span:nth-child(2) { animation-delay: 0.2s; }
+.bubble.typing span:nth-child(3) { animation-delay: 0.4s; }
+.bubble.typing small { width: 100%; color: var(--muted); margin-top: 6px; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+.note { align-self: center; font-size: 12px; color: var(--muted); background: var(--surface-2); padding: 5px 12px; border-radius: 999px; }
+.chat-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.chat-actions .btn { flex: 1; }
+.composer { display: flex; gap: 8px; align-items: flex-end; }
+.composer textarea { resize: none; min-height: 48px; max-height: 160px; field-sizing: content; }
+.composer .btn { width: 48px; padding: 0; flex-shrink: 0; }

@@ -14,6 +14,8 @@
   "kv_namespaces": [{ "binding": "BACKUPS" }],
   // Nightly jobs at 02:00 UTC (2am in winter, 3am in summer, UK time).
   "triggers": { "crons": ["0 2 * * *"] },
+  // The GitHub repository that "Improve the app" talks to.
+  "vars": { "GITHUB_REPO": "oobinks/bink" },
   // Keep the variables you set in the Cloudflare dashboard (ACCESS_TEAM_DOMAIN, OWNER_EMAILS).
   "keep_vars": true,
   "observability": { "enabled": true }

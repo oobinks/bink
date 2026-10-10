@@ -3,7 +3,8 @@
 Your personal DJ admin app: bookings, quotes, invoices, content and press pack, all in one place.
 It's hosted free on Cloudflare, works on any device, and only you can log in.
 
-**Status:** Phase 1 (foundations and dashboard) is done. Bookings, invoices, press pack and the content hub come next.
+**Status:** Phase 1 (foundations and dashboard) and the in-app "Improve the app" chat are done.
+Bookings, invoices, press pack and the content hub come next.
 
 ---
 
@@ -59,6 +60,52 @@ Go to <https://dash.cloudflare.com/sign-up>, sign up, and confirm your email add
 
 ---
 
+## "Improve the app" setup (about 15 minutes, one time)
+
+This connects the in-app chat (**More → Improve the app**) to Claude. It uses your Claude Pro or Max plan, so
+there's no extra cost. You need a computer for step 1 only.
+
+### 1. Get your Claude key (on your Mac)
+1. If you haven't already, install Node.js from <https://nodejs.org> (the **LTS** button).
+2. Open **Terminal** (press ⌘ + Space, type *Terminal*, press Enter), paste this and press Enter:
+   ```
+   npx @anthropic-ai/claude-code setup-token
+   ```
+3. A browser window opens. Log in to Claude and approve it.
+4. Terminal shows a long key starting `sk-ant-oat`. Copy it.
+
+### 2. Give the key to GitHub
+1. Go to <https://github.com/oobinks/bink/settings/secrets/actions> and click **New repository secret**.
+2. **Name:** `CLAUDE_CODE_OAUTH_TOKEN`. **Secret:** paste the key. Click **Add secret**.
+
+### 3. Let GitHub's automation make changes
+1. Go to <https://github.com/oobinks/bink/settings/actions>.
+2. Under **Workflow permissions**, choose **Read and write permissions**, and tick
+   **Allow GitHub Actions to create and approve pull requests**. Click **Save**.
+
+### 4. Let the app talk to GitHub
+1. Go to <https://github.com/settings/personal-access-tokens/new>.
+2. **Token name:** `DJ HQ`. **Expiration:** 1 year (GitHub will email you before it runs out).
+3. **Repository access:** **Only select repositories**, then choose **oobinks/bink**.
+4. **Permissions → Repository permissions:** set **Issues** to **Read and write**, and **Pull requests** to **Read-only**.
+5. Click **Generate token** and copy it.
+6. In Cloudflare: **Workers & Pages → ctrinn-hq → Settings → Variables and Secrets → Add**. Set **Type** to **Secret**,
+   **name** to `GITHUB_TOKEN`, and paste the token as the value. Click **Deploy**.
+
+### 5. Turn on previews
+In Cloudflare: **Workers & Pages → ctrinn-hq → Settings → Build**. Make sure **non-production branch builds**
+are switched on. This is what creates the preview link for each change.
+
+### How it works
+- **Chat:** you describe an idea and Claude replies in 1 to 3 minutes. It reads the app's code but changes nothing.
+- **Build it:** Claude makes the change on a separate copy and runs the safety checks. You get a **preview link**
+  to try it. The preview uses your real data, so be careful what you delete there.
+- **Make it live:** the change goes live in about 2 minutes.
+- **Undo:** puts things back how they were.
+- Claude follows the rules in `CLAUDE.md`. For example, it can add to your data but never delete it.
+
+---
+
 ## Everyday questions
 
 **How do I change my password?**
@@ -94,6 +141,9 @@ on later. Cloudflare may ask for a card to activate it, even though it's free fo
 - **Screens:** React + Vite PWA in `web/`, built to `dist/` and served as Workers static assets.
 - **Login:** `APP_PASSWORD` secret plus a session cookie (hashed token in D1), with per-IP lockout. Optionally,
   Cloudflare Access JWT verification as well, via `ACCESS_TEAM_DOMAIN`, `OWNER_EMAILS` and optionally `ACCESS_AUD`.
+- **Improve the app:** `worker/routes/ideas.js` talks to GitHub Issues (via the `GITHUB_TOKEN` secret);
+  `.github/workflows/app-ideas.yml` runs Claude Code (via the `CLAUDE_CODE_OAUTH_TOKEN` repository secret) to reply,
+  build on branch `idea-N`, merge, or revert. Rules for Claude are in `CLAUDE.md`.
 - **Scheduled job:** cron at `0 2 * * *` UTC (the nightly backup; invoice chasing and clip reminders come later).
 - **Free-plan CPU limit (10ms per request):** heavy work such as zips and PDFs is done in the browser, not the Worker.
 - **Data conventions:** money is stored in pence. Dates are `YYYY-MM-DD`, worked out in Europe/London time.

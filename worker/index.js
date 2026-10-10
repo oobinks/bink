@@ -8,6 +8,7 @@ import { requireAuth, authRoutes } from './auth.js';
 import { runBackup } from './backup.js';
 import dashboard from './routes/dashboard.js';
 import settings from './routes/settings.js';
+import ideas from './routes/ideas.js';
 
 const app = new Hono();
 
@@ -29,6 +30,7 @@ app.use('/api/*', requireAuth());
 app.get('/api/me', (c) => c.json({ email: c.get('user').email }));
 app.route('/api/dashboard', dashboard);
 app.route('/api/settings', settings);
+app.route('/api/ideas', ideas);
 app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));
 
 app.onError((err, c) => {
