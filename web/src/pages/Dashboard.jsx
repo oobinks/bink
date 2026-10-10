@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Disc3, Inbox, AlertTriangle, Clock, Receipt, Clapperboard, Sparkles } from 'lucide-react';
+import { Disc3, Inbox, AlertTriangle, Clock, Receipt, Clapperboard, Sparkles, Share2, Plus } from 'lucide-react';
+import { shareBookingForm } from './Bookings.jsx';
 import { api } from '../api.js';
 import { money, moneyShort, shortDate, relativeDay, dateParts, timeAgo } from '../format.js';
 
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [sample, setSample] = useState(false);
+  const [copied, setCopied] = useState('');
 
   useEffect(() => {
     const load = () => {
@@ -58,6 +60,11 @@ export default function Dashboard() {
             ? <>Next up: <b style={{ color: 'var(--text)' }}>{nextGig.venue_name}</b> · {relativeDay(nextGig.event_date, today).toLowerCase()}</>
             : 'No gigs booked yet.'}
         </p>
+      </div>
+
+      <div className="quick">
+        <button className="btn" onClick={() => shareBookingForm(setCopied)}><Share2 size={18} /> {copied ? 'Link copied' : 'Share booking form'}</button>
+        <Link className="btn" to="/bookings/new"><Plus size={18} /> Add enquiry</Link>
       </div>
 
       <div className="section stats">

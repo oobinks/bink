@@ -89,6 +89,28 @@ const migrations = [
     )`,
     `CREATE TABLE login_attempts (ip TEXT PRIMARY KEY, count INTEGER NOT NULL, until TEXT NOT NULL DEFAULT '')`,
   ],
+  [
+    // Phase 2: booking form fields, quotes, phone notifications.
+    `ALTER TABLE bookings ADD COLUMN equipment TEXT`,
+    `ALTER TABLE bookings ADD COLUMN guests INTEGER`,
+    `ALTER TABLE bookings ADD COLUMN contact_method TEXT`,
+    `ALTER TABLE bookings ADD COLUMN instagram TEXT`,
+    `ALTER TABLE bookings ADD COLUMN travel_miles INTEGER`,
+    `ALTER TABLE bookings ADD COLUMN quote_message TEXT`,
+    `ALTER TABLE bookings ADD COLUMN quote_token TEXT`,
+    `ALTER TABLE bookings ADD COLUMN quote_sent_at TEXT`,
+    `ALTER TABLE bookings ADD COLUMN quote_accepted_at TEXT`,
+    `CREATE UNIQUE INDEX bookings_quote_token ON bookings(quote_token)`,
+    `CREATE TABLE push_subscriptions (
+      endpoint TEXT PRIMARY KEY,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      created_at TEXT NOT NULL
+    )`,
+    // Stops anyone spamming the public booking form.
+    `CREATE TABLE public_hits (ip TEXT NOT NULL, hour TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (ip, hour))`,
+  ],
 ];
 
 let ready = false;

@@ -24,6 +24,23 @@ export const DEFAULT_SETTINGS = {
     numberPrefix: 'CT-',
     nextNumber: 1,
   },
+  // Prices are in pence. These are placeholders until ctrinn sets real ones.
+  pricing: {
+    presets: [
+      { name: 'Private party (4 hours)', pence: 35000 },
+      { name: 'Wedding (evening)', pence: 65000 },
+      { name: 'Bar / club set', pence: 25000 },
+    ],
+    extraHourPence: 5000,
+    equipmentPence: 10000,
+    travelPerMilePence: 45,
+    freeMiles: 20,
+  },
+  bookingForm: {
+    title: 'Private Party Booking Enquiry',
+    intro: 'Please fill out the below form to enquire for your upcoming private party!\nWe aim to get in touch within 24 to 48 hours after your request.\n\nThank you!',
+    thanks: "Thanks! Your enquiry has been sent. We'll be in touch within 24 to 48 hours.",
+  },
   backups: {
     lastBackupAt: null,
     lastBackupError: null,
@@ -65,7 +82,16 @@ export function cleanSection(section, input, current) {
   for (const [k, def] of Object.entries(defaults)) {
     if (!(k in input) || READ_ONLY[section]?.includes(k)) continue;
     const v = input[k];
-    if (Array.isArray(def)) {
+    if (section === 'pricing' && k === 'presets') {
+      if (!Array.isArray(v)) throw new Error('Presets must be a list');
+      out[k] = v.slice(0, 20).map((p) => {
+        const pence = Math.round(Number(p?.pence));
+        const name = String(p?.name ?? '').trim().slice(0, 80);
+        if (!name) throw new Error('Each preset needs a name');
+        if (!Number.isFinite(pence) || pence < 0) throw new Error(`Check the price for "${name}"`);
+        return { name, pence };
+      });
+    } else if (Array.isArray(def)) {
       if (!Array.isArray(v)) throw new Error(`${k} must be a list`);
       out[k] = v.map((x) => String(x).trim()).filter(Boolean).slice(0, 50);
     } else if (typeof def === 'number') {

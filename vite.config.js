@@ -29,6 +29,7 @@ export default defineConfig({
         // Always ask the network for pages first, so Cloudflare's login screen
         // can appear when your login expires. Falls back to the saved copy offline.
         navigateFallback: null,
+        importScripts: ['/push-sw.js'],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',

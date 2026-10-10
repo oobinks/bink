@@ -7,7 +7,7 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/cal/*"]
   },
   // The database and backup storage are created automatically on first deploy.
   "d1_databases": [{ "binding": "DB", "database_name": "ctrinn-hq" }],

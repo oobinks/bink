@@ -35,3 +35,16 @@ export function timeAgo(iso) {
   if (hours < 24) return `${hours}h ago`;
   return `${Math.round(hours / 24)}d ago`;
 }
+
+// "£350" / "350.50" typed in a box -> pence (or null if empty/invalid).
+export function toPence(input) {
+  const n = parseFloat(String(input ?? '').replace(/[£,\s]/g, ''));
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
+}
+// pence -> what goes in an input box ("350" or "350.50").
+export const fromPence = (p) => (p == null ? '' : (p % 100 ? (p / 100).toFixed(2) : String(p / 100)));
+
+export function longDate(iso) {
+  if (!iso) return 'Date TBC';
+  return parse(iso).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}

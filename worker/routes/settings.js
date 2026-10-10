@@ -6,7 +6,10 @@ import { logActivity, all } from '../db.js';
 
 const app = new Hono();
 
-const LABELS = { business: 'Your details', bank: 'Bank details', invoicing: 'Invoicing settings' };
+const LABELS = {
+  business: 'Your details', bank: 'Bank details', invoicing: 'Invoicing settings',
+  pricing: 'Prices', bookingForm: 'Booking form text',
+};
 
 app.get('/', async (c) => {
   const db = c.env.DB;

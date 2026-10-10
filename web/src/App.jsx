@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { CalendarDays, Receipt, Clapperboard, Newspaper } from 'lucide-react';
+import { Receipt, Clapperboard, Newspaper } from 'lucide-react';
 import { api } from './api.js';
 import Layout from './components/Layout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -10,6 +10,9 @@ import ComingSoon from './pages/ComingSoon.jsx';
 import Login from './pages/Login.jsx';
 import Ideas from './pages/Ideas.jsx';
 import IdeaChat from './pages/IdeaChat.jsx';
+import Bookings from './pages/Bookings.jsx';
+import BookingDetail from './pages/BookingDetail.jsx';
+import BookingEdit from './pages/BookingEdit.jsx';
 
 function Gate({ title, children }) {
   return (
@@ -89,8 +92,10 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
-        <Route path="bookings/*" element={<ComingSoon icon={CalendarDays} tone="pink" title="Bookings & quotes" phase={2}
-          text="Enquiries from your Google Form, the pipeline, price presets, PDF quotes and the gig calendar." />} />
+        <Route path="bookings" element={<Bookings />} />
+        <Route path="bookings/new" element={<BookingEdit />} />
+        <Route path="bookings/:id" element={<BookingDetail />} />
+        <Route path="bookings/:id/edit" element={<BookingEdit />} />
         <Route path="invoices/*" element={<ComingSoon icon={Receipt} tone="gold" title="Invoices" phase={3}
           text="One-tap invoices from bookings, automatic numbering, PDF by email, polite chasing and income by tax year." />} />
         <Route path="press/*" element={<ComingSoon icon={Newspaper} tone="violet" title="Press pack" phase={4}

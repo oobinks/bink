@@ -13,7 +13,8 @@ const KEEP = 30;
 export async function snapshot(db) {
   const data = { exportedAt: now(), tables: {} };
   for (const t of EXPORT_TABLES) data.tables[t] = (await db.prepare(`SELECT * FROM ${t} ORDER BY id`).all()).results;
-  const rows = (await db.prepare('SELECT key, value FROM settings').all()).results;
+  // The notification signing key stays private (devices just re-register if it's ever lost).
+  const rows = (await db.prepare("SELECT key, value FROM settings WHERE key != 'vapid'").all()).results;
   data.settings = Object.fromEntries(rows.map((r) => [r.key, JSON.parse(r.value)]));
   return data;
 }

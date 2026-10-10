@@ -24,7 +24,11 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
 - `npm test` must pass. Add or update tests in `test/` for new server behaviour.
 
 ## Project map
-- `worker/`: Cloudflare Worker (Hono). `index.js` routes, `db.js` schema and migrations, `auth.js` login,
-  `routes/*.js` API endpoints, `backup.js` nightly backups, `sample-data.js` demo data.
+- `worker/`: Cloudflare Worker (Hono). `index.js` routes and nightly job, `db.js` schema and migrations,
+  `auth.js` login, `routes/*.js` API endpoints, `backup.js` nightly backups, `sample-data.js` demo data,
+  `booking-fields.js` booking validation, `push.js` phone notifications.
+- **Public (no login):** only `routes/public.js` (booking form, quote links with Accept, calendar feed) and the
+  `/book` and `/q/:token` screens. Never expose anything else publicly.
 - `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.
-- `test/`: Node tests. `app.test.js` and `ideas.test.js` run the real Worker on the local simulator.
+- `web/src/pdf.js`: branded PDF quotes, made in the browser.
+- `test/`: Node tests. `app.test.js`, `bookings.test.js` and `ideas.test.js` run the real Worker on the local simulator.

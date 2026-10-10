@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { fromPence, toPence } from '../format.js';
+import { pushSupport, pushEnabled, enablePush } from '../push.js';
+import { shareOrCopy } from '../share.js';
 
 const TABS = [
   { id: 'business', label: 'Your details' },
+  { id: 'pricing', label: 'Prices' },
+  { id: 'form', label: 'Booking form' },
+  { id: 'phone', label: 'Phone & calendar' },
   { id: 'bank', label: 'Bank details' },
   { id: 'invoicing', label: 'Invoicing' },
   { id: 'data', label: 'Backups & export' },
@@ -199,6 +205,127 @@ function HistoryTab() {
   );
 }
 
+function PricingTab({ settings, reload }) {
+  const p = settings.pricing;
+  const [presets, setPresets] = useState(p.presets.map((x) => ({ name: x.name, amount: fromPence(x.pence) })));
+  const [rates, setRates] = useState({
+    extraHour: fromPence(p.extraHourPence), equipment: fromPence(p.equipmentPence),
+    perMile: fromPence(p.travelPerMilePence), freeMiles: String(p.freeMiles),
+  });
+  const { save, msg, busy } = useSave('pricing', reload);
+  const setRate = (k) => (val) => setRates((r) => ({ ...r, [k]: val }));
+  const submit = (e) => {
+    e.preventDefault();
+    save({
+      presets: presets.filter((x) => x.name.trim()).map((x) => ({ name: x.name, pence: toPence(x.amount) ?? -1 })),
+      extraHourPence: toPence(rates.extraHour) ?? '', equipmentPence: toPence(rates.equipment) ?? '',
+      travelPerMilePence: toPence(rates.perMile) ?? '', freeMiles: rates.freeMiles,
+    });
+  };
+  return (
+    <form className="card" onSubmit={submit}>
+      <h3>Price presets</h3>
+      <p className="lead">One tap on a booking fills in the price. Change them any time.</p>
+      {presets.map((x, i) => (
+        <div className="preset-row" key={i}>
+          <input className="input" value={x.name} aria-label="Preset name" placeholder="e.g. Wedding (evening)"
+            onChange={(e) => setPresets((l) => l.map((y, j) => j === i ? { ...y, name: e.target.value } : y))} />
+          <input className="input amount" inputMode="decimal" value={x.amount} aria-label="Price" placeholder="£"
+            onChange={(e) => setPresets((l) => l.map((y, j) => j === i ? { ...y, amount: e.target.value } : y))} />
+          <button type="button" className="icon-btn" aria-label="Remove" onClick={() => setPresets((l) => l.filter((_, j) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <button type="button" className="btn small" style={{ marginBottom: 18 }} onClick={() => setPresets((l) => [...l, { name: '', amount: '' }])}>+ Add preset</button>
+
+      <h3>Extras</h3>
+      <div className="grid-2" style={{ marginTop: 10 }}>
+        <Field label="Extra hour (£)" inputMode="decimal" value={rates.extraHour} onChange={setRate('extraHour')} />
+        <Field label="Speakers, lights & booth (£)" inputMode="decimal" value={rates.equipment} onChange={setRate('equipment')} />
+        <Field label="Travel per mile (£)" inputMode="decimal" value={rates.perMile} onChange={setRate('perMile')} />
+        <Field label="Free miles" inputMode="numeric" value={rates.freeMiles} onChange={setRate('freeMiles')} />
+      </div>
+      <SaveBar busy={busy} msg={msg} />
+    </form>
+  );
+}
+
+function PhoneTab() {
+  const [state, setState] = useState(pushSupport());
+  const [on, setOn] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [cal, setCal] = useState('');
+  useEffect(() => {
+    pushEnabled().then(setOn);
+    api('/calendar-link').then((r) => setCal(window.location.origin + r.path)).catch(() => {});
+  }, []);
+  const enable = async () => {
+    setMsg(null);
+    try {
+      await enablePush();
+      setOn(true);
+      setMsg({ ok: true, text: 'Done. A test notification is on its way.' });
+    } catch (err) {
+      setMsg({ ok: false, text: err.message });
+      setState(pushSupport());
+    }
+  };
+  const webcal = cal.replace(/^https?:/, 'webcal:');
+  const google = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
+  return (
+    <>
+      <div className="card">
+        <h3>Notifications on this device</h3>
+        <p className="lead">Get a ping when a new enquiry arrives or a client accepts a quote. Turn it on for each phone or laptop.</p>
+        {state === 'install-first' && <p className="lead">On iPhone, first add the app to your Home Screen (Safari → Share → Add to Home Screen), open it from there, then come back here.</p>}
+        {state === 'blocked' && <p className="lead">Notifications are blocked for this app. Allow them in your phone or browser settings, then try again.</p>}
+        {state === 'unsupported' && <p className="lead">This browser can't do notifications. Try Safari on iPhone or Chrome on Android.</p>}
+        {state === 'ok' && (on
+          ? <button className="btn block" onClick={enable}>✓ On. Send a test</button>
+          : <button className="btn primary block" onClick={enable}>Turn on notifications</button>)}
+        {msg && <div className={`msg ${msg.ok ? 'ok' : 'err'}`}>{msg.text}</div>}
+      </div>
+      <div className="card" style={{ marginTop: 14 }}>
+        <h3>Gigs in your phone's calendar</h3>
+        <p className="lead">Confirmed gigs appear in your normal calendar app and update by themselves. Keep this link private.</p>
+        <div className="btn-row">
+          <a className="btn primary" href={webcal}>Add to iPhone / Mac calendar</a>
+          <a className="btn" href={google} target="_blank" rel="noreferrer">Add to Google Calendar</a>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function FormTab({ settings, reload }) {
+  const link = `${window.location.origin}/book`;
+  const [copied, setCopied] = useState('');
+  return (
+    <>
+      <div className="card">
+        <h3>Your booking form link</h3>
+        <p className="lead">Send this to anyone who wants to book you. It never changes.</p>
+        <div className="kv"><span>Link</span><span><a href="/book" target="_blank" rel="noreferrer" style={{ color: 'var(--gold)' }}>{link}</a></span></div>
+        <button className="btn primary block" style={{ marginTop: 12 }}
+          onClick={async () => setCopied(await shareOrCopy({ title: 'Booking enquiry', url: link }) === 'copied' ? 'Copied' : '')}>
+          Share link
+        </button>
+        {copied && <div className="msg ok">{copied}</div>}
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <SectionForm section="bookingForm" initial={settings.bookingForm} title="Wording on the form">
+          {(v, set) => (
+            <>
+              <Field label="Title" value={v.title} onChange={set('title')} />
+              <Field label="Intro" type="textarea" value={v.intro} onChange={set('intro')} />
+              <Field label="Thank-you message" type="textarea" value={v.thanks} onChange={set('thanks')} />
+            </>
+          )}
+        </SectionForm>
+      </div>
+    </>
+  );
+}
+
 function SecurityTab() {
   const everywhere = async () => {
     if (!confirm('Log out on every device, including this one?')) return;
@@ -293,6 +420,9 @@ export default function Settings() {
         </SectionForm>
       )}
 
+      {tab === 'pricing' && <PricingTab settings={settings} reload={reload} />}
+      {tab === 'form' && <FormTab settings={settings} reload={reload} />}
+      {tab === 'phone' && <PhoneTab />}
       {tab === 'data' && <DataTab settings={settings} reload={reload} />}
       {tab === 'history' && <HistoryTab />}
       {tab === 'security' && <SecurityTab />}

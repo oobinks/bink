@@ -3,8 +3,12 @@
 Your personal DJ admin app: bookings, quotes, invoices, content and press pack, all in one place.
 It's hosted free on Cloudflare, works on any device, and only you can log in.
 
-**Status:** Phase 1 (foundations and dashboard) and the in-app "Improve the app" chat are done.
-Bookings, invoices, press pack and the content hub come next.
+**Status:** done so far:
+- Phase 1: dashboard, settings, backups
+- Phase 2: booking form, enquiries, quotes, calendar
+- the "Improve the app" chat
+
+Next: invoices, the after-gig screen, clips, then the press pack.
 
 ---
 
@@ -54,7 +58,13 @@ Go to <https://dash.cloudflare.com/sign-up>, sign up, and confirm your email add
    - **Android:** in **Chrome**, tap **⋮**, then **Install app** (or **Add to Home screen**).
 3. On your laptop, bookmark it. In Chrome you can also click the install icon in the address bar.
 
-### 5. Fill in your details
+### 5. Turn on notifications and add gigs to your phone calendar
+In the app, go to **More → Settings → Phone & calendar**:
+- Tap **Turn on notifications**. You'll get a ping for every new enquiry and every accepted quote.
+  On iPhone, open the app from your Home Screen first, or the button won't work.
+- Tap **Add to iPhone / Mac calendar** (or **Google Calendar**). Confirmed gigs will then appear in your normal calendar.
+
+### 6. Fill in your details
 - **More → Settings → Bank details**: enter your details. They only appear on invoices.
 - When you've finished exploring: **Settings → Backups & export → Remove sample data**. This only removes the pretend records.
 
@@ -108,6 +118,16 @@ are switched on. This is what creates the preview link for each change.
 
 ## Everyday questions
 
+**What's my booking form link?**
+Your app's address with `/book` on the end, for example `https://ctrinn-hq.yourname.workers.dev/book`. It never
+changes. Share it from the home screen (**Share booking form**) or from **Bookings → Form**.
+
+**How do quotes work?**
+1. Open an enquiry, tap a price preset, add any extras, then tap **Send quote**.
+2. The client gets a private link where they can see the quote, download it as a PDF and tap **Accept**.
+3. When they accept, the booking moves to **Confirmed**, appears in your calendar, and you get a notification.
+
+
 **How do I change my password?**
 Cloudflare dashboard → Workers & Pages → ctrinn-hq → Settings → Variables and Secrets → `APP_PASSWORD` → Edit.
 
@@ -131,6 +151,8 @@ Yes, if you buy a domain (about £10 a year), for example `hq.ctrinn.co.uk`. Tha
 **Optional extra lock (Cloudflare Access).**
 If you'd like a second lock as well as your password (Cloudflare emails you a one-time code), it can be turned
 on later. Cloudflare may ask for a card to activate it, even though it's free for one person, so it's off by default.
+If it's ever turned on, the booking form, quote links and calendar link must be excluded from it, or clients
+won't be able to reach them.
 
 ---
 
