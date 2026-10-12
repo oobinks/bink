@@ -111,7 +111,7 @@ app.post('/quote/:token/accept', async (c) => {
   await logActivity(db, 'Quote accepted by client', `${b.client_name}: ${b.event_date}`);
   c.executionCtx.waitUntil(notify(c.env, {
     title: `🎉 Booked: ${b.client_name} accepted`,
-    body: `${b.event_type || 'Gig'} · ${shortDate(b.event_date)}${clash ? ` ⚠️ Clashes with ${clash.client_name}` : ''}`,
+    body: `${b.event_type || 'Gig'} · ${shortDate(b.event_date)}${clash ? ` ⚠️ Clashes with ${clash.client_name}` : ''}. Tap to add it to TimeTree.`,
     url: `/bookings/${b.id}`,
   }));
   return c.json({ ok: true });

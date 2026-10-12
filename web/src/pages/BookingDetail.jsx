@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Phone, MessageSquare, Mail, Camera, MapPin, AlertTriangle, Pencil, Send, Link2, FileDown,
-  Check, X, Plus, Star, CalendarCheck, ExternalLink, Receipt,
+  Check, X, Plus, Star, CalendarCheck, ExternalLink, Receipt, CalendarPlus,
 } from 'lucide-react';
 import { api } from '../api.js';
 import { money, fromPence, toPence, longDate, timeAgo } from '../format.js';
 import { quotePdf, downloadBlob } from '../pdf.js';
 import { shareOrCopy, shareFile } from '../share.js';
 import { STATUS_INFO } from './Bookings.jsx';
+import { copyForTimeTree } from '../timetree.js';
 
 const EQUIPMENT_LABEL = 'Speakers, lights & DJ booth';
 
@@ -179,6 +180,31 @@ function QuoteBuilder({ b, pricing, onSaved }) {
   );
 }
 
+function TimeTreeCard({ b }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await copyForTimeTree(b);
+      setCopied(true);
+    } catch {
+      alert("Couldn't copy. Press and hold to copy the details from the booking instead.");
+    }
+  };
+  return (
+    <div className="card timetree">
+      {copied ? (
+        <>
+          <h3>Copied ✓</h3>
+          <p className="lead">Now open TimeTree, start a new event, set the date and time, and paste the details into the title or memo.</p>
+          <a className="btn primary block" href="https://timetreeapp.com/" target="_blank" rel="noreferrer">Open TimeTree</a>
+        </>
+      ) : (
+        <button className="btn block" onClick={copy}><CalendarPlus size={18} /> Add to TimeTree</button>
+      )}
+    </div>
+  );
+}
+
 export default function BookingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -244,6 +270,8 @@ export default function BookingDetail() {
           <span>Date clash: you're already booked on this day ({b.clashes.map((c) => `${c.client_name}${c.start_time ? ` ${c.start_time}` : ''}`).join(', ')}).</span>
         </div>
       )}
+
+      {b.status === 'confirmed' && <TimeTreeCard b={b} />}
 
       <ContactButtons b={b} />
       {b.client_id && <Link to={`/clients/${b.client_id}`} className="client-link" style={{ marginTop: 10 }}>View client profile →</Link>}

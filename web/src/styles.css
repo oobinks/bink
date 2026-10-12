@@ -353,3 +353,5 @@ details.step[open] { padding-bottom: 4px; }
 .avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; font-size: 14px;
   color: #1a1408; background: linear-gradient(135deg, var(--gold), var(--pink)); }
 .client-link { display: inline-flex; align-items: center; gap: 6px; color: var(--gold); font-size: 14px; font-weight: 650; }
+.timetree { margin-bottom: 12px; padding: 12px; }
+.timetree h3 { color: var(--green); }
