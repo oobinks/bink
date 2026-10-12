@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { House, CalendarDays, Receipt, Clapperboard, Menu } from 'lucide-react';
+import PullToRefresh from './PullToRefresh.jsx';
 
 const tabs = [
   { to: '/', label: 'Home', icon: House, end: true },
@@ -12,6 +13,7 @@ const tabs = [
 export default function Layout() {
   return (
     <div className="shell">
+      <PullToRefresh />
       <nav className="tabbar">
         <div className="brand">
           <div className="wordmark"><span>ctrinn</span></div>
