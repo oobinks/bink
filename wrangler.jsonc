@@ -17,8 +17,8 @@
   // 02:00 UTC nightly jobs (backup, completing past gigs); 09:00 UTC payment reminders
   // (9am in winter, 10am in summer, UK time).
   "triggers": { "crons": ["0 2 * * *", "0 9 * * *"] },
-  // The GitHub repository that "Improve the app" talks to.
-  "vars": { "GITHUB_REPO": "oobinks/bink" },
+  // The GitHub repo "Improve the app" talks to, and the Gmail invoices and reminders are sent from.
+  "vars": { "GITHUB_REPO": "oobinks/bink", "GMAIL_ADDRESS": "ctrinn.music@gmail.com" },
   // Keep the variables you set in the Cloudflare dashboard (ACCESS_TEAM_DOMAIN, OWNER_EMAILS).
   "keep_vars": true,
   "observability": { "enabled": true }
