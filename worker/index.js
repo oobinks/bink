@@ -12,6 +12,7 @@ import ideas from './routes/ideas.js';
 import bookings from './routes/bookings.js';
 import invoices from './routes/invoices.js';
 import clients from './routes/clients.js';
+import afterGig, { afterGigNudges } from './routes/after-gig.js';
 import { runReminders } from './reminders.js';
 import { emailReady, senderAddress } from './mail.js';
 import publicRoutes, { calendarFeed, calendarToken } from './routes/public.js';
@@ -56,6 +57,7 @@ app.route('/api/ideas', ideas);
 app.route('/api/bookings', bookings);
 app.route('/api/invoices', invoices);
 app.route('/api/clients', clients);
+app.route('/api/after-gig', afterGig);
 app.get('/api/email-status', async (c) => c.json({ ready: emailReady(c.env), from: await senderAddress(c.env) }));
 
 // Phone notifications.
@@ -93,7 +95,7 @@ export default {
     if (event.cron === '0 9 * * *') {
       // Morning: payment reminders. Links in emails need the app's address, saved on each visit.
       const site = await getSetting(env.DB, 'site');
-      ctx.waitUntil(runReminders(env, site?.origin || ''));
+      ctx.waitUntil(Promise.all([runReminders(env, site?.origin || ''), afterGigNudges(env)]));
       return;
     }
     ctx.waitUntil((async () => {

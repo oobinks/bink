@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Disc3, Inbox, AlertTriangle, Clock, Receipt, Clapperboard, Sparkles, Share2, Plus, PoundSterling } from 'lucide-react';
+import { Disc3, Inbox, AlertTriangle, Clock, Receipt, Clapperboard, Sparkles, Share2, Plus, PoundSterling, PartyPopper } from 'lucide-react';
 import { shareBookingForm } from './Bookings.jsx';
 import { api } from '../api.js';
 import { money, moneyShort, shortDate, relativeDay, dateParts, timeAgo } from '../format.js';
 
-const ALERT_ICONS = { deposit: PoundSterling, gig: Disc3, enquiry: Inbox, overdue: AlertTriangle, due: Clock, invoice: Receipt, clips: Clapperboard };
+const ALERT_ICONS = { aftergig: PartyPopper, deposit: PoundSterling, gig: Disc3, enquiry: Inbox, overdue: AlertTriangle, due: Clock, invoice: Receipt, clips: Clapperboard };
 
 function greeting() {
   const h = new Date().getHours();

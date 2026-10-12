@@ -116,7 +116,8 @@ export default function ClientDetail() {
         <div className="list">
           {c.bookings.length ? c.bookings.map((b) => (
             <Link key={b.id} to={`/bookings/${b.id}`} className="row">
-              <div className="row-main"><div className="row-title">{b.event_type || 'Booking'}</div><div className="row-sub">{shortDate(b.event_date)}{b.venue_name ? ` · ${b.venue_name}` : ''}</div></div>
+              <div className="row-main"><div className="row-title">{b.event_type || 'Booking'}</div><div className="row-sub">{shortDate(b.event_date)}{b.venue_name ? ` · ${b.venue_name}` : ''}</div>
+                {b.gig_notes && <div className="row-sub" style={{ whiteSpace: 'normal', color: 'var(--text)' }}>📝 {b.gig_notes}</div>}</div>
               <span className={`pill ${STATUS_INFO[b.status].tone}`}>{STATUS_INFO[b.status].label}</span>
             </Link>
           )) : <div className="empty">No bookings yet.</div>}

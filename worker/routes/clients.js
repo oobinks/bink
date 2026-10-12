@@ -57,7 +57,7 @@ app.get('/:id{[0-9]+}', async (c) => {
   const [invoices, bookings] = await db.batch([
     db.prepare(`SELECT id, number, issue_date, due_date, total_pence, status, sent_at, paid_at, viewed_at
       FROM invoices WHERE client_id = ? ORDER BY issue_date DESC, id DESC`).bind(client.id),
-    db.prepare(`SELECT id, status, event_type, event_date, venue_name, price_pence, extras, deposit_pence, deposit_paid_at
+    db.prepare(`SELECT id, status, event_type, event_date, venue_name, price_pence, extras, deposit_pence, deposit_paid_at, gig_notes
       FROM bookings WHERE client_id = ? ORDER BY event_date DESC`).bind(client.id),
   ]).then((r) => r.map((x) => x.results));
   const sum = (list) => list.reduce((a, i) => a + i.total_pence, 0);

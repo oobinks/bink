@@ -9,7 +9,9 @@ It's hosted free on Cloudflare, works on any device, and only you can log in.
 - Phase 3: invoices, payment reminders, money and tax-year reports
 - the "Improve the app" chat
 
-Next: the after-gig screen, clips, then the press pack.
+- Phase 4: the after-gig screen
+
+Next: clips (the content hub), then the press pack.
 
 ---
 
@@ -139,6 +141,15 @@ are switched on. This is what creates the preview link for each change.
 You'll see **Viewed** once the client has opened it. Reminders go out each morning (2 days before the due date,
 on the due date, then 7 and 14 days overdue). You can change the timing and wording in
 **Settings → Emails & reminders**, or pause reminders for any single invoice.
+
+**What happens after a gig?**
+The morning after, your phone pings you ("How was Neon Rooms?") and the home screen shows a card. Tap it for one screen:
+1. **Get paid:** tap **Balance paid on the night** (this makes the invoice, takes off the deposit and marks it paid
+   that night), or **send the invoice** if they still owe you.
+2. **Clips:** upload the night's videos (coming with the content hub).
+3. **Notes for next time:** private notes, kept on the booking and the client's profile.
+
+Then tap **Done**.
 
 **How do client profiles work?**
 Everyone you quote, play for or invoice gets a profile automatically, matched by email or name. Open one from

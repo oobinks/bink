@@ -142,13 +142,12 @@ app.post('/', async (c) => {
   }
 });
 
-// One tap from a booking: everything filled in from the quote.
-app.post('/from-booking/:bookingId{[0-9]+}', async (c) => {
-  const db = c.env.DB;
-  const b = await db.prepare('SELECT * FROM bookings WHERE id = ?').bind(Number(c.req.param('bookingId'))).first();
-  if (!b) return c.json({ error: 'Booking not found' }, 404);
+// Makes (or finds) the invoice for a booking, filled in from the quote. Returns { id, existing }.
+export async function invoiceFromBooking(db, bookingId) {
+  const b = await db.prepare('SELECT * FROM bookings WHERE id = ?').bind(bookingId).first();
+  if (!b) return null;
   const existing = await db.prepare('SELECT id FROM invoices WHERE booking_id = ? ORDER BY id DESC LIMIT 1').bind(b.id).first();
-  if (existing) return c.json({ id: existing.id, existing: true });
+  if (existing) return { id: existing.id, existing: true };
   const when = b.event_date ? new Date(b.event_date + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
   const what = [b.event_type || 'DJ performance', b.venue_name && `at ${b.venue_name}`, when && `(${when})`].filter(Boolean).join(' ');
   const items = [
@@ -171,7 +170,14 @@ app.post('/from-booking/:bookingId{[0-9]+}', async (c) => {
     booking_id: b.id, client_id: b.client_id ?? undefined, client_name: b.client_name, client_email: b.client_email,
     client_address: client?.address, items, due_date: dueDate, notes,
   });
-  return c.json({ id });
+  return { id, existing: false };
+}
+
+// One tap from a booking: everything filled in from the quote.
+app.post('/from-booking/:bookingId{[0-9]+}', async (c) => {
+  const r = await invoiceFromBooking(c.env.DB, Number(c.req.param('bookingId')));
+  if (!r) return c.json({ error: 'Booking not found' }, 404);
+  return c.json(r.existing ? r : { id: r.id });
 });
 
 // Loads an invoice, giving it a private link if it doesn't have one yet.

@@ -171,6 +171,11 @@ const migrations = [
     // Answers to your own extra questions on the booking form: [{ id, question, answer }].
     `ALTER TABLE bookings ADD COLUMN answers TEXT`,
   ],
+  [
+    // After the gig: when you wrapped it up, and your notes from the night.
+    `ALTER TABLE bookings ADD COLUMN wrapped_at TEXT`,
+    `ALTER TABLE bookings ADD COLUMN gig_notes TEXT`,
+  ],
 ];
 
 let ready = false;

@@ -322,6 +322,16 @@ export default function BookingDetail() {
         {b.notes && <p className="notes">{b.notes}</p>}
       </div>
 
+      {b.gig_notes && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <h3 style={{ marginBottom: 6 }}>Notes from the night</h3>
+          <p className="notes" style={{ margin: 0 }}>{b.gig_notes}</p>
+        </div>
+      )}
+      {['confirmed', 'completed'].includes(b.status) && !b.wrapped_at && b.event_date && b.event_date < new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date()) && (
+        <Link className="btn block" style={{ marginTop: 12 }} to={`/after/${b.id}`}>Wrap up this gig</Link>
+      )}
+
       {b.answers?.length > 0 && (
         <div className="card" style={{ marginTop: 12 }}>
           <h3 style={{ marginBottom: 8 }}>More answers</h3>

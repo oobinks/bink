@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { todayUK, addDays, all } from '../db.js';
+import { unwrappedGigs } from './after-gig.js';
 
 const app = new Hono();
 
@@ -16,7 +17,7 @@ app.get('/', async (c) => {
   const today = todayUK();
   const monthStart = today.slice(0, 8) + '01';
 
-  const [upcomingGigs, newEnquiries, unpaidRows, toInvoice, clipCounts, stats] = await db.batch([
+  let [upcomingGigs, newEnquiries, unpaidRows, toInvoice, clipCounts, stats] = await db.batch([
     db.prepare(`SELECT id, client_name, event_date, start_time, end_time, venue_name, event_type, price_pence
       FROM bookings WHERE status = 'confirmed' AND event_date >= ? ORDER BY event_date, start_time LIMIT 6`).bind(today),
     db.prepare(`SELECT id, client_name, event_date, venue_name, event_type, budget_pence, created_at, seen_at
@@ -43,6 +44,11 @@ app.get('/', async (c) => {
 
   // "Needs your attention" — the most urgent things first.
   const attention = [];
+  const toWrap = await unwrappedGigs(db, today);
+  for (const g of toWrap.slice(0, 3)) {
+    attention.push({ kind: 'aftergig', tone: 'pink', title: `How was ${g.venue_name || g.client_name}? Wrap it up`,
+      detail: 'Get paid, add clips and notes', link: `/after/${g.id}` });
+  }
   for (const g of upcomingGigs.filter((g) => g.event_date === today)) {
     attention.push({ kind: 'gig', tone: 'gold', title: `Gig tonight at ${g.venue_name || 'TBC'}`,
       detail: `${g.start_time || ''}${g.end_time ? '–' + g.end_time : ''} · ${g.client_name}`, link: `/bookings/${g.id}` });
@@ -70,6 +76,8 @@ app.get('/', async (c) => {
     attention.push({ kind: 'due', tone: 'gold', title: `${plural(dueSoon.length, 'invoice', 'invoices')} due in the next 2 days`,
       detail: dueSoon.map((i) => i.client_name).join(', '), link: '/invoices' });
   }
+  const wrapIds = new Set(toWrap.map((g) => g.id));
+  toInvoice = toInvoice.filter((b) => !wrapIds.has(b.id));
   if (toInvoice.length) {
     attention.push({ kind: 'invoice', tone: 'violet',
       title: `${toInvoice.length} past ${toInvoice.length === 1 ? 'gig needs' : 'gigs need'} an invoice`,

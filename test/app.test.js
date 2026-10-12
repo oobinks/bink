@@ -54,7 +54,7 @@ test('dashboard shows sample gigs, enquiries and overdue invoices', async () => 
   assert.ok(body.upcomingGigs.length >= 3);
   assert.equal(body.newEnquiries.length, 2);
   assert.ok(body.unpaid.some((i) => i.state === 'overdue'));
-  assert.ok(body.attention.some((a) => a.kind === 'invoice'), 'flags the past gig with no invoice');
+  assert.ok(body.attention.some((a) => a.kind === 'aftergig'), "flags last night's gig to wrap up");
 });
 
 test('settings save known fields only and validate numbers', async () => {

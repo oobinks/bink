@@ -382,3 +382,11 @@ details.step[open] { padding-bottom: 4px; }
 .q-body .field:first-child { margin-top: 10px; }
 .save-bar { position: sticky; bottom: calc(var(--nav-h) + var(--safe-b) + 8px); margin-top: 14px; }
 @media (min-width: 900px) { .save-bar { bottom: 16px; } }
+
+/* After the gig */
+.step-card { margin-bottom: 12px; }
+.step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.step-num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px;
+  background: var(--surface-2); color: var(--gold); flex-shrink: 0; }
+.step-num.done { background: var(--green); color: #07150f; }
+.hint svg { vertical-align: -1px; }

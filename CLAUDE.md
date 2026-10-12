@@ -29,9 +29,10 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
   `booking-fields.js` booking validation, `push.js` phone notifications, `invoice-logic.js` invoice rules,
   `reminders.js` morning payment reminders, `mail.js` Gmail sending, `clients.js` find-or-create client profiles
   (bookings and invoices carry a `client_id`; use `linkClient()` when creating them), `form-fields.js` the
-  editable booking form (core questions map to booking columns; custom answers go in `bookings.answers`).
+  editable booking form (core questions map to booking columns; custom answers go in `bookings.answers`),
+  `routes/after-gig.js` the morning-after wrap-up (`wrapped_at`, `gig_notes`, balance paid on the night).
 - **Public (no login):** only `routes/public.js` (booking form, quote links with Accept, invoice links, calendar
   feed) and the `/book`, `/q/:token` and `/i/:token` screens. Never expose anything else publicly.
 - `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.
 - `web/src/pdf.js`: branded PDF quotes and invoices, made in the browser.
-- `test/`: Node tests. `app.test.js`, `bookings.test.js`, `invoices.test.js`, `clients.test.js` and `ideas.test.js` run the real Worker on the local simulator.
+- `test/`: Node tests. `app.test.js`, `bookings.test.js`, `invoices.test.js`, `clients.test.js`, `after-gig.test.js` and `ideas.test.js` run the real Worker on the local simulator.
