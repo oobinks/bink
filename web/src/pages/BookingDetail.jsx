@@ -322,6 +322,15 @@ export default function BookingDetail() {
         {b.notes && <p className="notes">{b.notes}</p>}
       </div>
 
+      {b.answers?.length > 0 && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <h3 style={{ marginBottom: 8 }}>More answers</h3>
+          {b.answers.map((a) => (
+            <div className="kv" key={a.id}><span>{a.question}</span><span>{Array.isArray(a.answer) ? a.answer.join(', ') : a.answer}</span></div>
+          ))}
+        </div>
+      )}
+
       <div className="section">
         <QuoteBuilder b={b} pricing={pricing} onSaved={load} />
       </div>

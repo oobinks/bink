@@ -10,6 +10,7 @@ import { notify } from '../push.js';
 import { shortDate } from '../format.js';
 import { identify } from '../auth.js';
 import { linkClient } from '../clients.js';
+import { describe, readSubmission } from '../form-fields.js';
 import { invoiceState } from '../invoice-logic.js';
 
 const app = new Hono();
@@ -28,7 +29,7 @@ async function tooManySubmissions(c) {
 
 app.get('/form', async (c) => {
   const [form, business] = await Promise.all([getSetting(c.env.DB, 'bookingForm'), getSetting(c.env.DB, 'business')]);
-  return c.json({ ...form, djName: business.djName, email: business.email });
+  return c.json({ title: form.title, intro: form.intro, fields: describe(form.fields), djName: business.djName, email: business.email });
 });
 
 app.post('/enquiry', async (c) => {
@@ -36,15 +37,21 @@ app.post('/enquiry', async (c) => {
   // A hidden box only robots fill in. Pretend it worked so they move on.
   if (input.website) return c.json({ ok: true });
   if (await tooManySubmissions(c)) return c.json({ error: 'Too many enquiries from here. Please try again later or email us.' }, 429);
+  const db = c.env.DB;
+  const form = await getSetting(db, 'bookingForm');
   let b;
+  let answers;
   try {
-    b = cleanBooking(input, { isPublic: true });
+    const parts = readSubmission(form.fields, input);
+    b = cleanBooking(parts.booking);
+    answers = parts.answers;
   } catch (err) {
     return c.json({ error: err.message }, 400);
   }
+  if (!b.event_date || !b.client_email) return c.json({ error: 'Please answer all the required questions' }, 400);
   if (b.event_date < todayUK()) return c.json({ error: 'The date of your event is in the past' }, 400);
+  if (answers.length) b.answers = JSON.stringify(answers);
 
-  const db = c.env.DB;
   b.client_id = await linkClient(db, { name: b.client_name, email: b.client_email, phone: b.client_phone, instagram: b.instagram });
   const ts = now();
   const cols = Object.keys(b);
@@ -61,7 +68,6 @@ app.post('/enquiry', async (c) => {
     body: `${b.event_type} · ${shortDate(b.event_date)} · ${b.venue_name}${clash ? ' ⚠️ date clash' : ''}`,
     url: `/bookings/${id}`,
   }));
-  const form = await getSetting(db, 'bookingForm');
   return c.json({ ok: true, message: form.thanks });
 });
 

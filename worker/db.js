@@ -167,6 +167,10 @@ const migrations = [
     `ALTER TABLE bookings ADD COLUMN deposit_pence INTEGER`,
     `ALTER TABLE bookings ADD COLUMN deposit_paid_at TEXT`,
   ],
+  [
+    // Answers to your own extra questions on the booking form: [{ id, question, answer }].
+    `ALTER TABLE bookings ADD COLUMN answers TEXT`,
+  ],
 ];
 
 let ready = false;

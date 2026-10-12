@@ -59,23 +59,14 @@ export const FIELDS = {
   notes: text(4000),
 };
 
-// The public form's required questions (matching the original Google Form).
-const REQUIRED_PUBLIC = ['client_name', 'event_type', 'event_date', 'start_time', 'end_time', 'venue_name',
-  'venue_address', 'equipment', 'guests', 'contact_method', 'client_phone', 'client_email'];
-
-export function cleanBooking(input, { partial = false, isPublic = false } = {}) {
+// Which questions are required on the public form is set by the form layout (form-fields.js).
+export function cleanBooking(input, { partial = false } = {}) {
   const out = {};
   for (const [k, check] of Object.entries(FIELDS)) {
     if (!(k in input)) continue;
     out[k] = check(input[k]);
   }
-  if (isPublic) {
-    for (const k of REQUIRED_PUBLIC) {
-      if (out[k] === null || out[k] === undefined) throw new Error('Please answer all the required questions');
-    }
-  } else if (!partial && !out.client_name) {
-    throw new Error("Add the client's name");
-  }
+  if (!partial && !out.client_name) throw new Error("Add the client's name");
   if (partial && 'client_name' in out && !out.client_name) throw new Error("The client's name can't be empty");
   return out;
 }

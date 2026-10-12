@@ -1,51 +1,93 @@
 // The public enquiry form clients fill in (the link you send out: /book).
+// The questions come from Settings → Booking form.
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-function Choice({ name, value, options, onChange }) {
+function Choice({ name, value, options, onChange, multi }) {
+  const picked = multi ? value || [] : value;
+  const toggle = (v) => (multi ? onChange(picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v]) : onChange(v));
   return (
-    <div className="choices" role="radiogroup" aria-label={name}>
-      {options.map(([v, label]) => (
-        <button type="button" key={v} role="radio" aria-checked={value === v}
-          className={`chip${value === v ? ' active' : ''}`} onClick={() => onChange(v)}>{label}</button>
-      ))}
+    <div className="choices" role={multi ? 'group' : 'radiogroup'} aria-label={name}>
+      {options.map((o) => {
+        const on = multi ? picked.includes(o.value) : picked === o.value;
+        return (
+          <button type="button" key={o.value} role={multi ? 'checkbox' : 'radio'} aria-checked={on}
+            className={`chip${on ? ' active' : ''}`} onClick={() => toggle(o.value)}>{multi && on ? '✓ ' : ''}{o.label}</button>
+        );
+      })}
     </div>
   );
 }
 
-function Q({ label, hint, required, children, htmlFor }) {
+function Input({ f, value, onChange }) {
+  const common = { id: f.id, className: 'input', value: value ?? '', onChange: (e) => onChange(e.target.value), required: f.required };
+  switch (f.type) {
+    case 'long': return <textarea rows={f.id === 'venue_address' ? 2 : 3} {...common} />;
+    case 'date': return <input type="date" min={f.id === 'event_date' ? today() : undefined} {...common} />;
+    case 'time': return <input type="time" {...common} />;
+    case 'number': return <input type="number" inputMode="numeric" min="0" {...common} />;
+    case 'money': return <input inputMode="decimal" placeholder="£" {...common} />;
+    case 'email': return <input type="email" autoComplete={f.core ? 'email' : undefined} {...common} />;
+    case 'phone': return <input type="tel" autoComplete={f.core ? 'tel' : undefined} {...common} />;
+    case 'dropdown':
+      return (
+        <select {...common}>
+          <option value="">Choose…</option>
+          {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      );
+    case 'choice': return <Choice name={f.label} value={value} options={f.options} onChange={onChange} />;
+    case 'checkboxes': return <Choice name={f.label} value={value} options={f.options} onChange={onChange} multi />;
+    default:
+      return <input autoComplete={f.id === 'client_name' ? 'name' : undefined}
+        autoCapitalize={f.id === 'instagram' ? 'none' : undefined} placeholder={f.id === 'instagram' ? '@yourname' : undefined} {...common} />;
+  }
+}
+
+function Question({ f, value, onChange }) {
   return (
     <div className="field">
-      <label htmlFor={htmlFor}>{label}{required && <span className="req"> *</span>}</label>
-      {hint && <span className="hint">{hint}</span>}
-      {children}
+      <label htmlFor={f.id}>{f.label}{f.required && <span className="req"> *</span>}</label>
+      {f.hint && <span className="hint">{f.hint}</span>}
+      <Input f={f} value={value} onChange={onChange} />
     </div>
   );
 }
+
+const isBlank = (v) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length);
 
 export default function BookingForm() {
   const [form, setForm] = useState(null);
-  const [v, setV] = useState({ equipment: '', contact_method: '' });
+  const [v, setV] = useState({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState('');
-  const set = (k) => (e) => setV((o) => ({ ...o, [k]: e?.target ? e.target.value : e }));
 
-  useEffect(() => { api('/public/form').then(setForm).catch(() => setForm({ title: 'Booking enquiry', intro: '' })); }, []);
+  useEffect(() => { api('/public/form').then(setForm).catch(() => setForm({ title: 'Booking enquiry', intro: '', fields: [] })); }, []);
   useEffect(() => { document.title = form?.title || 'Booking enquiry'; }, [form]);
+  if (!form) return null;
+
+  const asksContact = form.fields.some((f) => f.id === 'contact_method');
+  // The Instagram question only appears when they choose Instagram as their contact method.
+  const visible = form.fields.filter((f) => f.id !== 'instagram' || !asksContact || v.contact_method === 'instagram');
+  const isRequired = (f) => (f.id === 'instagram' && asksContact ? true : f.required);
+  const set = (id) => (val) => setV((o) => ({ ...o, [id]: val }));
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!v.equipment) return setError('Please say whether you need speakers, lights & DJ booth');
-    if (!v.contact_method) return setError('Please choose your best method of communication');
-    if (v.contact_method === 'instagram' && !v.instagram) return setError('Please add your Instagram handle');
+    const missing = visible.find((f) => isRequired(f) && isBlank(v[f.id]));
+    if (missing) return setError(`Please answer: ${missing.label}`);
     setBusy(true);
     try {
-      const budget = v.budget ? Math.round(parseFloat(String(v.budget).replace(/[£,]/g, '')) * 100) : null;
-      const res = await api('/public/enquiry', { method: 'POST', body: { ...v, budget_pence: Number.isFinite(budget) ? budget : null } });
+      const body = { ...v };
+      if (!isBlank(v.budget_pence)) {
+        const pounds = parseFloat(String(v.budget_pence).replace(/[£,]/g, ''));
+        body.budget_pence = Number.isFinite(pounds) ? Math.round(pounds * 100) : null;
+      }
+      const res = await api('/public/enquiry', { method: 'POST', body });
       setDone(res.message || 'Thanks! Your enquiry has been sent.');
       window.scrollTo(0, 0);
     } catch (err) {
@@ -54,7 +96,22 @@ export default function BookingForm() {
     setBusy(false);
   };
 
-  if (!form) return null;
+  // Show start and finish times side by side when they're next to each other.
+  const rows = [];
+  for (let i = 0; i < visible.length; i++) {
+    const f = visible[i];
+    const next = visible[i + 1];
+    if (f.type === 'time' && next?.type === 'time') {
+      rows.push(<div className="grid-2" key={f.id}>
+        <Question f={{ ...f, required: isRequired(f) }} value={v[f.id]} onChange={set(f.id)} />
+        <Question f={{ ...next, required: isRequired(next) }} value={v[next.id]} onChange={set(next.id)} />
+      </div>);
+      i++;
+    } else {
+      rows.push(<Question key={f.id} f={{ ...f, required: isRequired(f) }} value={v[f.id]} onChange={set(f.id)} />);
+    }
+  }
+
   return (
     <div className="public">
       <header className="public-head">
@@ -70,63 +127,11 @@ export default function BookingForm() {
           <p className="lead">Any questions in the meantime: <a href={`mailto:${form.email}`}>{form.email}</a></p>
         </div>
       ) : (
-        <form className="card" onSubmit={submit} noValidate={false}>
+        <form className="card" onSubmit={submit} noValidate>
           <p className="hint" style={{ marginTop: 0 }}><span className="req">*</span> Indicates required question</p>
-
-          <Q label="Full Name" required htmlFor="name">
-            <input id="name" className="input" required autoComplete="name" value={v.client_name || ''} onChange={set('client_name')} />
-          </Q>
-          <Q label="Occasion" required hint="Example: 21st Birthday Party" htmlFor="occasion">
-            <input id="occasion" className="input" required value={v.event_type || ''} onChange={set('event_type')} />
-          </Q>
-          <Q label="Date of Event" required htmlFor="date">
-            <input id="date" className="input" type="date" required min={today()} value={v.event_date || ''} onChange={set('event_date')} />
-          </Q>
-          <div className="grid-2">
-            <Q label="Start Time" required htmlFor="start">
-              <input id="start" className="input" type="time" required value={v.start_time || ''} onChange={set('start_time')} />
-            </Q>
-            <Q label="Finish Time" required htmlFor="finish">
-              <input id="finish" className="input" type="time" required value={v.end_time || ''} onChange={set('end_time')} />
-            </Q>
-          </div>
-          <Q label="Location" required hint="The name of the venue or place" htmlFor="venue">
-            <input id="venue" className="input" required value={v.venue_name || ''} onChange={set('venue_name')} />
-          </Q>
-          <Q label="Event Address" required hint="Including postcode" htmlFor="address">
-            <textarea id="address" className="input" rows={2} required autoComplete="street-address" value={v.venue_address || ''} onChange={set('venue_address')} />
-          </Q>
-          <Q label="Do you need us to provide speakers, lights & DJ booth?" required>
-            <Choice name="equipment" value={v.equipment} onChange={set('equipment')}
-              options={[['yes', 'Yes'], ['no', 'No'], ['not sure', 'Not sure']]} />
-          </Q>
-          <Q label="Approximate Number of Attendees" required htmlFor="guests">
-            <input id="guests" className="input" type="number" inputMode="numeric" min="1" required value={v.guests || ''} onChange={set('guests')} />
-          </Q>
-          <Q label="Best Method of Communication" required>
-            <Choice name="contact" value={v.contact_method} onChange={set('contact_method')}
-              options={[['email', 'Email'], ['phone', 'Phone / Text'], ['instagram', 'Instagram']]} />
-          </Q>
-          <Q label="Phone Number" required htmlFor="phone">
-            <input id="phone" className="input" type="tel" required autoComplete="tel" value={v.client_phone || ''} onChange={set('client_phone')} />
-          </Q>
-          <Q label="Email Address" required htmlFor="email">
-            <input id="email" className="input" type="email" required autoComplete="email" value={v.client_email || ''} onChange={set('client_email')} />
-          </Q>
-          {v.contact_method === 'instagram' && (
-            <Q label="Instagram Handle" required htmlFor="ig">
-              <input id="ig" className="input" placeholder="@yourname" autoCapitalize="none" value={v.instagram || ''} onChange={set('instagram')} />
-            </Q>
-          )}
-          <Q label="Budget" hint="Optional" htmlFor="budget">
-            <input id="budget" className="input" inputMode="decimal" placeholder="£" value={v.budget || ''} onChange={set('budget')} />
-          </Q>
-          <Q label="Anything else we should know?" hint="Optional: music you love, special requests" htmlFor="notes">
-            <textarea id="notes" className="input" rows={3} value={v.notes || ''} onChange={set('notes')} />
-          </Q>
+          {rows}
           {/* Hidden from people; only spam robots fill this in. */}
-          <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={v.website || ''} onChange={set('website')} />
-
+          <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={v.website || ''} onChange={(e) => set('website')(e.target.value)} />
           <button className="btn primary block" disabled={busy}>{busy ? 'Sending…' : 'Send enquiry'}</button>
           {error && <div className="msg err">{error}</div>}
         </form>

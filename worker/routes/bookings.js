@@ -79,8 +79,8 @@ app.get('/:id{[0-9]+}', async (c) => {
     clashes(db, b),
     db.prepare('SELECT id, number, status FROM invoices WHERE booking_id = ? ORDER BY id DESC LIMIT 1').bind(b.id).first(),
   ]);
-  const { raw_form, ...rest } = b;
-  return c.json({ ...withTotal(rest), clashes: clash, invoice });
+  const { raw_form, answers, ...rest } = b;
+  return c.json({ ...withTotal(rest), answers: answers ? JSON.parse(answers) : [], clashes: clash, invoice });
 });
 
 app.patch('/:id{[0-9]+}', async (c) => {

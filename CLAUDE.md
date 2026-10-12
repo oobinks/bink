@@ -28,7 +28,8 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
   `auth.js` login, `routes/*.js` API endpoints, `backup.js` nightly backups, `sample-data.js` demo data,
   `booking-fields.js` booking validation, `push.js` phone notifications, `invoice-logic.js` invoice rules,
   `reminders.js` morning payment reminders, `mail.js` Gmail sending, `clients.js` find-or-create client profiles
-  (bookings and invoices carry a `client_id`; use `linkClient()` when creating them).
+  (bookings and invoices carry a `client_id`; use `linkClient()` when creating them), `form-fields.js` the
+  editable booking form (core questions map to booking columns; custom answers go in `bookings.answers`).
 - **Public (no login):** only `routes/public.js` (booking form, quote links with Accept, invoice links, calendar
   feed) and the `/book`, `/q/:token` and `/i/:token` screens. Never expose anything else publicly.
 - `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.

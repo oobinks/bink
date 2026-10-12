@@ -192,3 +192,22 @@ test('declining and deleting', async () => {
   assert.equal((await call('DELETE', `/api/bookings/${id}`)).status, 200);
   assert.equal((await call('GET', `/api/bookings/${id}`)).status, 404);
 });
+
+test('the form can be edited, and extra answers are saved with the booking', async () => {
+  const { bookingForm } = (await call('GET', '/api/settings')).body;
+  const fields = [...bookingForm.fields.filter((f) => f.id !== 'guests'),
+    { id: 'q_genres01', label: 'Which genres?', type: 'choice', options: ['Disco', 'House'], required: true }];
+  assert.equal((await call('PUT', '/api/settings/bookingForm', { fields: fields.filter((f) => f.id !== 'client_email') })).status, 400);
+  assert.equal((await call('PUT', '/api/settings/bookingForm', { fields })).status, 200);
+  const form = (await call('GET', '/api/public/form', null, { auth: false })).body;
+  assert.ok(!form.fields.some((f) => f.id === 'guests'));
+  assert.deepEqual(form.fields.at(-1).options, [{ value: 'Disco', label: 'Disco' }, { value: 'House', label: 'House' }]);
+
+  const { guests, ...noGuests } = enquiry;
+  assert.equal((await call('POST', '/api/public/enquiry', { ...noGuests, client_name: 'Form Tester' }, { auth: false, ip: '10.0.0.9' })).status, 400, 'genres required');
+  assert.equal((await call('POST', '/api/public/enquiry', { ...noGuests, client_name: 'Form Tester', q_genres01: 'House' }, { auth: false, ip: '10.0.0.9' })).status, 200);
+  const b = (await call('GET', '/api/bookings?status=new')).body.bookings.find((x) => x.client_name === 'Form Tester');
+  const full = (await call('GET', `/api/bookings/${b.id}`)).body;
+  assert.deepEqual(full.answers, [{ id: 'q_genres01', question: 'Which genres?', answer: 'House' }]);
+  assert.equal(full.guests, null);
+});

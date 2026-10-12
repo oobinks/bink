@@ -152,6 +152,19 @@ invoice are filled in for you. **Invoices → New** starts by picking the client
 Your app's address with `/book` on the end, for example `https://ctrinn-hq.yourname.workers.dev/book`. It never
 changes. Share it from the home screen (**Share booking form**) or from **Bookings → Form**.
 
+**How do I change the questions on my booking form?**
+**Settings → Booking form → Questions.**
+- Tap a question to change its wording, hint or whether it's required.
+- Use the arrows to reorder questions.
+- Tap **Remove** to take one off.
+- Tap **Add a question** to add your own, choosing the type of answer: short text, long text, multiple choice,
+  tick boxes, dropdown, number, date, time, email, phone or money.
+
+Then tap **Save changes**. Your form link updates straight away.
+
+The standard questions (name, date, venue and so on) fill in the booking. Name, Email and Date can't be removed
+because quotes and invoices need them. Answers to your own questions show on the booking under **More answers**.
+
 **How do quotes work?**
 1. Open an enquiry, tap a price preset, add any extras, then tap **Send quote**.
 2. The client gets a private link where they can see the quote, download it as a PDF and tap **Accept**.

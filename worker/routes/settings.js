@@ -3,6 +3,7 @@ import { DEFAULT_SETTINGS, getAllSettings, getSetting, setSetting, cleanSection 
 import { runBackup, listBackups, snapshot } from '../backup.js';
 import { loadSampleData, clearSampleData, hasSampleData } from '../sample-data.js';
 import { logActivity, all } from '../db.js';
+import { describe, TYPES, CORE } from '../form-fields.js';
 
 const app = new Hono();
 
@@ -13,7 +14,16 @@ const LABELS = {
 
 app.get('/', async (c) => {
   const db = c.env.DB;
-  return c.json({ ...(await getAllSettings(db)), meta: { hasSampleData: await hasSampleData(db), user: c.get('user').email } });
+  const settings = await getAllSettings(db);
+  return c.json({
+    ...settings,
+    meta: {
+      hasSampleData: await hasSampleData(db), user: c.get('user').email,
+      // For the form builder: question types, and the standard questions that feed bookings.
+      formTypes: TYPES,
+      coreQuestions: describe(Object.entries(CORE).map(([id, d]) => ({ id, label: d.label, hint: d.hint || '', required: false }))),
+    },
+  });
 });
 
 app.put('/:section', async (c) => {

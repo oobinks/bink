@@ -1,3 +1,5 @@
+import { DEFAULT_FIELDS, cleanFields } from './form-fields.js';
+
 // Everything in here is editable on the Settings screen.
 export const DEFAULT_SETTINGS = {
   business: {
@@ -41,6 +43,7 @@ export const DEFAULT_SETTINGS = {
     title: 'Private Party Booking Enquiry',
     intro: 'Please fill out the below form to enquire for your upcoming private party!\nWe aim to get in touch within 24 to 48 hours after your request.\n\nThank you!',
     thanks: "Thanks! Your enquiry has been sent. We'll be in touch within 24 to 48 hours.",
+    fields: DEFAULT_FIELDS, // the questions, in order (edit them in Settings → Booking form)
   },
   // Email wording. {placeholders} are filled in for each invoice.
   emails: {
@@ -108,6 +111,8 @@ export function cleanSection(section, input, current) {
         if (!Number.isFinite(pence) || pence < 0) throw new Error(`Check the price for "${name}"`);
         return { name, pence };
       });
+    } else if (section === 'bookingForm' && k === 'fields') {
+      out[k] = cleanFields(v);
     } else if (section === 'emails' && k === 'steps') {
       if (!Array.isArray(v) || v.length !== def.length) throw new Error('Reminder steps are missing');
       out[k] = v.map((st) => {

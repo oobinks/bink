@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { fromPence, toPence } from '../format.js';
 import { pushSupport, pushEnabled, enablePush } from '../push.js';
 import { shareOrCopy } from '../share.js';
+import FormBuilder from './FormBuilder.jsx';
 
 const TABS = [
   { id: 'business', label: 'Your details' },
@@ -316,7 +317,7 @@ function FormTab({ settings, reload }) {
         {copied && <div className="msg ok">{copied}</div>}
       </div>
       <div style={{ marginTop: 14 }}>
-        <SectionForm section="bookingForm" initial={settings.bookingForm} title="Wording on the form">
+        <SectionForm section="bookingForm" initial={{ title: settings.bookingForm.title, intro: settings.bookingForm.intro, thanks: settings.bookingForm.thanks }} title="Wording on the form">
           {(v, set) => (
             <>
               <Field label="Title" value={v.title} onChange={set('title')} />
@@ -326,6 +327,7 @@ function FormTab({ settings, reload }) {
           )}
         </SectionForm>
       </div>
+      <FormBuilder settings={settings} reload={reload} />
     </>
   );
 }
