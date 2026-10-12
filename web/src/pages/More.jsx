@@ -41,6 +41,7 @@ export default function More() {
           <div className="row-main"><div className="row-title">Log out</div><div className="row-sub">Only needed on a shared device</div></div>
         </button>
       </div>
+      <p className="hint" style={{ textAlign: 'center', marginTop: 20 }}>App version: {__APP_VERSION__}</p>
     </>
   );
 }

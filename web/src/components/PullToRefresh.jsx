@@ -48,6 +48,13 @@ export default function PullToRefresh() {
         try {
           const reg = await navigator.serviceWorker?.getRegistration();
           await reg?.update();
+          // If a new version is downloading, give it a moment to take over first.
+          if (reg?.installing || reg?.waiting) {
+            await new Promise((resolve) => {
+              navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+              setTimeout(resolve, 4000);
+            });
+          }
         } catch { /* offline is fine */ }
         window.location.reload();
       } else {
