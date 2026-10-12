@@ -4,6 +4,8 @@
   "name": "ctrinn-hq",
   "main": "worker/index.js",
   "compatibility_date": "2025-10-01",
+  // Needed by the email sender (Gmail).
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
@@ -12,8 +14,9 @@
   // The database and backup storage are created automatically on first deploy.
   "d1_databases": [{ "binding": "DB", "database_name": "ctrinn-hq" }],
   "kv_namespaces": [{ "binding": "BACKUPS" }],
-  // Nightly jobs at 02:00 UTC (2am in winter, 3am in summer, UK time).
-  "triggers": { "crons": ["0 2 * * *"] },
+  // 02:00 UTC nightly jobs (backup, completing past gigs); 09:00 UTC payment reminders
+  // (9am in winter, 10am in summer, UK time).
+  "triggers": { "crons": ["0 2 * * *", "0 9 * * *"] },
   // The GitHub repository that "Improve the app" talks to.
   "vars": { "GITHUB_REPO": "oobinks/bink" },
   // Keep the variables you set in the Cloudflare dashboard (ACCESS_TEAM_DOMAIN, OWNER_EMAILS).

@@ -8,6 +8,8 @@ import { getSetting, setSetting } from '../settings.js';
 import { cleanBooking, quoteTotal } from '../booking-fields.js';
 import { notify } from '../push.js';
 import { shortDate } from '../format.js';
+import { identify } from '../auth.js';
+import { invoiceState } from '../invoice-logic.js';
 
 const app = new Hono();
 const MAX_PER_HOUR = 5;
@@ -111,6 +113,41 @@ app.post('/quote/:token/accept', async (c) => {
     url: `/bookings/${b.id}`,
   }));
   return c.json({ ok: true });
+});
+
+// An invoice someone was sent (/i/<secret>): the details, how to pay, and a PDF.
+app.get('/invoice/:token', async (c) => {
+  const db = c.env.DB;
+  const token = c.req.param('token');
+  if (!/^[0-9a-f]{32}$/.test(token)) return c.json({ error: 'Invoice not found' }, 404);
+  const inv = await db.prepare(`SELECT * FROM invoices WHERE token = ? AND status != 'draft'`).bind(token).first();
+  if (!inv) return c.json({ error: 'This invoice link is no longer available. Please get in touch.' }, 404);
+  // Count it as "viewed" when the client opens it (not when you do).
+  const who = await identify(c.req.raw, c.env);
+  if (!inv.viewed_at && !(who && !who.setupNeeded)) {
+    inv.viewed_at = now();
+    await db.prepare('UPDATE invoices SET viewed_at = ? WHERE id = ?').bind(inv.viewed_at, inv.id).run();
+    await logActivity(db, `Invoice ${inv.number} viewed by client`, inv.client_name);
+  }
+  const [business, bank, invoicing] = await Promise.all([getSetting(db, 'business'), getSetting(db, 'bank'), getSetting(db, 'invoicing')]);
+  return c.json({
+    business: { djName: business.djName, legalName: business.legalName, email: business.email, phone: business.phone, address: business.address },
+    bank: { accountName: bank.accountName, bankName: bank.bankName, sortCode: bank.sortCode, accountNumber: bank.accountNumber },
+    reference: inv.number,
+    vatNote: invoicing.vatNote,
+    paymentTermsDays: invoicing.paymentTermsDays,
+    number: inv.number,
+    client: inv.client_name,
+    clientEmail: inv.client_email,
+    clientAddress: inv.client_address,
+    issueDate: inv.issue_date,
+    dueDate: inv.due_date,
+    items: JSON.parse(inv.items || '[]'),
+    totalPence: inv.total_pence,
+    notes: inv.notes,
+    state: invoiceState(inv, todayUK()),
+    paidOn: inv.paid_at ? inv.paid_at.slice(0, 10) : null,
+  });
 });
 
 // ---- Calendar feed (subscribed to from your phone's calendar app) ----

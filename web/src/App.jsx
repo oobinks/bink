@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Receipt, Clapperboard, Newspaper } from 'lucide-react';
+import { Clapperboard, Newspaper } from 'lucide-react';
 import { api } from './api.js';
 import Layout from './components/Layout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -13,6 +13,9 @@ import IdeaChat from './pages/IdeaChat.jsx';
 import Bookings from './pages/Bookings.jsx';
 import BookingDetail from './pages/BookingDetail.jsx';
 import BookingEdit from './pages/BookingEdit.jsx';
+import Invoices from './pages/Invoices.jsx';
+import InvoiceDetail from './pages/InvoiceDetail.jsx';
+import Money from './pages/Money.jsx';
 
 function Gate({ title, children }) {
   return (
@@ -96,8 +99,9 @@ export default function App() {
         <Route path="bookings/new" element={<BookingEdit />} />
         <Route path="bookings/:id" element={<BookingDetail />} />
         <Route path="bookings/:id/edit" element={<BookingEdit />} />
-        <Route path="invoices/*" element={<ComingSoon icon={Receipt} tone="gold" title="Invoices" phase={3}
-          text="One-tap invoices from bookings, automatic numbering, PDF by email, polite chasing and income by tax year." />} />
+        <Route path="invoices" element={<Invoices />} />
+        <Route path="invoices/money" element={<Money />} />
+        <Route path="invoices/:id" element={<InvoiceDetail />} />
         <Route path="press/*" element={<ComingSoon icon={Newspaper} tone="violet" title="Press pack" phase={4}
           text="Photos, videos, bio and rider, published to a public press pack page that updates itself." />} />
         <Route path="content/*" element={<ComingSoon icon={Clapperboard} tone="violet" title="Content hub" phase={5}

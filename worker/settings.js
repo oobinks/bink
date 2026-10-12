@@ -41,6 +41,22 @@ export const DEFAULT_SETTINGS = {
     intro: 'Please fill out the below form to enquire for your upcoming private party!\nWe aim to get in touch within 24 to 48 hours after your request.\n\nThank you!',
     thanks: "Thanks! Your enquiry has been sent. We'll be in touch within 24 to 48 hours.",
   },
+  // Email wording. {placeholders} are filled in for each invoice.
+  emails: {
+    invoiceSubject: 'Invoice {number} from {dj_name}',
+    invoiceBody: 'Hi {first_name},\n\nThanks so much for having me at {event}! Here\'s your invoice {number} for {amount}. It\'s attached, and you can also view it online:\n{link}\n\nPayment is due by {due_date}. The bank details are on the invoice.\n\nThanks,\n{dj_name}',
+    chaseOn: true,
+    steps: [
+      { days: -2, on: true, subject: 'Friendly reminder: invoice {number} is due on {due_date}',
+        body: 'Hi {first_name},\n\nJust a quick heads-up that invoice {number} for {amount} is due on {due_date}.\n\nYou can view it and the bank details here:\n{link}\n\nThanks again,\n{dj_name}' },
+      { days: 0, on: true, subject: 'Invoice {number} is due today',
+        body: 'Hi {first_name},\n\nA gentle reminder that invoice {number} for {amount} is due today.\n\n{link}\n\nIf you\'ve already paid, thank you, and please ignore this.\n\n{dj_name}' },
+      { days: 7, on: true, subject: 'Invoice {number}: payment reminder',
+        body: 'Hi {first_name},\n\nI hope you\'re well! I haven\'t received payment yet for invoice {number} ({amount}), which was due on {due_date}. Could you take a look when you get a moment?\n\n{link}\n\nIf you\'ve already paid, thank you, and please ignore this.\n\n{dj_name}' },
+      { days: 14, on: true, subject: 'Invoice {number} is now 2 weeks overdue',
+        body: 'Hi {first_name},\n\nInvoice {number} for {amount} is now two weeks overdue (it was due on {due_date}). Please could you let me know when I can expect payment?\n\n{link}\n\nThanks,\n{dj_name}' },
+    ],
+  },
   backups: {
     lastBackupAt: null,
     lastBackupError: null,
@@ -91,6 +107,16 @@ export function cleanSection(section, input, current) {
         if (!Number.isFinite(pence) || pence < 0) throw new Error(`Check the price for "${name}"`);
         return { name, pence };
       });
+    } else if (section === 'emails' && k === 'steps') {
+      if (!Array.isArray(v) || v.length !== def.length) throw new Error('Reminder steps are missing');
+      out[k] = v.map((st) => {
+        const days = Math.round(Number(st?.days));
+        if (!Number.isFinite(days) || days < -30 || days > 90) throw new Error('Reminder days must be between -30 and 90');
+        const subject = String(st?.subject ?? '').trim().slice(0, 200);
+        const body = String(st?.body ?? '').trim().slice(0, 4000);
+        if (!subject || !body) throw new Error('Each reminder needs a subject and a message');
+        return { days, on: Boolean(st?.on), subject, body };
+      });
     } else if (Array.isArray(def)) {
       if (!Array.isArray(v)) throw new Error(`${k} must be a list`);
       out[k] = v.map((x) => String(x).trim()).filter(Boolean).slice(0, 50);
@@ -101,7 +127,7 @@ export function cleanSection(section, input, current) {
     } else if (typeof def === 'boolean') {
       out[k] = Boolean(v);
     } else {
-      out[k] = String(v ?? '').trim().slice(0, 1000);
+      out[k] = String(v ?? '').trim().slice(0, section === 'emails' ? 4000 : 1000);
     }
   }
   return out;

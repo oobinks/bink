@@ -111,6 +111,19 @@ const migrations = [
     // Stops anyone spamming the public booking form.
     `CREATE TABLE public_hits (ip TEXT NOT NULL, hour TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (ip, hour))`,
   ],
+  [
+    // Phase 3: invoices get a private link (to view and pay) and a reminder log.
+    `ALTER TABLE invoices ADD COLUMN token TEXT`,
+    `ALTER TABLE invoices ADD COLUMN viewed_at TEXT`,
+    `CREATE UNIQUE INDEX invoices_token ON invoices(token)`,
+    `CREATE TABLE invoice_reminders (
+      invoice_id INTEGER NOT NULL,
+      step INTEGER NOT NULL,
+      method TEXT NOT NULL,
+      at TEXT NOT NULL,
+      PRIMARY KEY (invoice_id, step)
+    )`,
+  ],
 ];
 
 let ready = false;

@@ -10,9 +10,13 @@ import dashboard from './routes/dashboard.js';
 import settings from './routes/settings.js';
 import ideas from './routes/ideas.js';
 import bookings from './routes/bookings.js';
+import invoices from './routes/invoices.js';
+import { runReminders } from './reminders.js';
+import { emailReady } from './mail.js';
 import publicRoutes, { calendarFeed, calendarToken } from './routes/public.js';
 import { getVapid, saveSubscription, notify } from './push.js';
 import { todayUK, now, logActivity } from './db.js';
+import { getSetting, setSetting } from './settings.js';
 
 const app = new Hono();
 
@@ -28,6 +32,17 @@ app.use('/api/*', async (c, next) => {
   await ensureSchema(c.env.DB);
   await next();
 });
+// Scheduled jobs don't know the app's web address, so remember it when you use the app.
+let originSaved = false;
+app.use('/api/*', async (c, next) => {
+  const origin = new URL(c.req.url).origin;
+  if (!originSaved && origin.startsWith('https://')) {
+    const site = await getSetting(c.env.DB, 'site');
+    if (site?.origin !== origin) await setSetting(c.env.DB, 'site', { origin });
+    originSaved = true;
+  }
+  await next();
+});
 authRoutes(app);
 // Public: the booking form and quote links. Everything after this needs you logged in.
 app.route('/api/public', publicRoutes);
@@ -38,6 +53,8 @@ app.route('/api/dashboard', dashboard);
 app.route('/api/settings', settings);
 app.route('/api/ideas', ideas);
 app.route('/api/bookings', bookings);
+app.route('/api/invoices', invoices);
+app.get('/api/email-status', (c) => c.json({ ready: emailReady(c.env) }));
 
 // Phone notifications.
 app.get('/api/push/key', async (c) => c.json({ publicKey: (await getVapid(c.env.DB)).publicKey }));
@@ -71,6 +88,12 @@ export default {
   fetch: app.fetch,
   async scheduled(event, env, ctx) {
     await ensureSchema(env.DB);
+    if (event.cron === '0 9 * * *') {
+      // Morning: payment reminders. Links in emails need the app's address, saved on each visit.
+      const site = await getSetting(env.DB, 'site');
+      ctx.waitUntil(runReminders(env, site?.origin || ''));
+      return;
+    }
     ctx.waitUntil((async () => {
       // Gigs whose date has passed move from Confirmed to Completed.
       const done = await env.DB.prepare(`UPDATE bookings SET status = 'completed', updated_at = ?

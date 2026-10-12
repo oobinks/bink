@@ -317,3 +317,28 @@ a.row:active, button.row:active { background: var(--surface-2); }
 .preset-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .preset-row .input:first-child { flex: 1; min-width: 0; }
 .preset-row .input.amount { flex: 0 0 96px; }
+.alert-icon.green { background: var(--green-soft); color: var(--green); }
+
+/* ---------- Invoices ---------- */
+.invoice-hero { text-align: center; }
+.invoice-amount { font-size: 38px; font-weight: 850; letter-spacing: -0.03em; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.copy-row { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.copy-row svg { color: var(--faint); vertical-align: -2px; }
+.copied { color: var(--green); font-size: 12px; font-weight: 700; }
+.warn:is(a) { text-decoration: none; }
+.bars { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; align-items: end; height: 160px; }
+.bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; min-width: 0; }
+.bar { width: 100%; max-width: 22px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--gold), var(--pink)); }
+.bar-label { font-size: 10px; color: var(--muted); }
+.bar-val { font-size: 9px; color: var(--muted); white-space: nowrap; }
+ol.steps { margin: 0 0 4px; padding-left: 20px; color: var(--muted); font-size: 14px; }
+ol.steps li { margin-bottom: 8px; }
+ol.steps b { color: var(--text); }
+.switch { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; color: var(--muted); cursor: pointer; }
+.switch input { width: 20px; height: 20px; accent-color: var(--gold); }
+details.step { border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; margin-bottom: 8px; background: var(--bg); }
+details.step summary { display: flex; align-items: center; gap: 10px; min-height: 48px; cursor: pointer; font-weight: 650; list-style: none; }
+details.step summary::-webkit-details-marker { display: none; }
+details.step[open] { padding-bottom: 4px; }
+.kv .row-amount { white-space: nowrap; word-break: normal; flex-shrink: 0; }

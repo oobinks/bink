@@ -6,9 +6,10 @@ It's hosted free on Cloudflare, works on any device, and only you can log in.
 **Status:** done so far:
 - Phase 1: dashboard, settings, backups
 - Phase 2: booking form, enquiries, quotes, calendar
+- Phase 3: invoices, payment reminders, money and tax-year reports
 - the "Improve the app" chat
 
-Next: invoices, the after-gig screen, clips, then the press pack.
+Next: the after-gig screen, clips, then the press pack.
 
 ---
 
@@ -64,7 +65,17 @@ In the app, go to **More → Settings → Phone & calendar**:
   On iPhone, open the app from your Home Screen first, or the button won't work.
 - Tap **Add to iPhone / Mac calendar** (or **Google Calendar**). Confirmed gigs will then appear in your normal calendar.
 
-### 6. Fill in your details
+### 6. Let the app email invoices and reminders from your Gmail (optional, 2 minutes)
+Without this, you send invoices from your own email app in one tap, and on reminder days the app pings your phone.
+With it, invoices and polite reminders go out by themselves from ctrinn.music@gmail.com and show in your Sent folder.
+1. On <https://myaccount.google.com/security>, make sure **2-Step Verification** is on.
+2. Go to <https://myaccount.google.com/apppasswords>, type **DJ HQ** as the name, then tap **Create**. Copy the
+   16-letter password it shows. This is a separate password just for the app; your normal one stays private.
+3. In Cloudflare: **Workers & Pages → ctrinn-hq → Settings → Variables and Secrets → Add**. Set **Type** to **Secret**,
+   **name** to `GMAIL_APP_PASSWORD`, and paste the password as the value. Click **Deploy**.
+4. In the app: **Settings → Emails & reminders → Send me a test email**.
+
+### 7. Fill in your details
 - **More → Settings → Bank details**: enter your details. They only appear on invoices.
 - When you've finished exploring: **Settings → Backups & export → Remove sample data**. This only removes the pretend records.
 
@@ -118,6 +129,19 @@ are switched on. This is what creates the preview link for each change.
 
 ## Everyday questions
 
+**How do invoices work?**
+1. On a confirmed or completed booking, tap **Create invoice**. Everything is filled in from the quote, and it's due in 7 days.
+2. Tap **Email invoice**, or share the link or PDF. The client gets a page with your bank details (tap to copy) and a PDF.
+3. When they pay, tap **Mark as paid**.
+
+You'll see **Viewed** once the client has opened it. Reminders go out each morning (2 days before the due date,
+on the due date, then 7 and 14 days overdue). You can change the timing and wording in
+**Settings → Emails & reminders**, or pause reminders for any single invoice.
+
+**Where are my totals for tax?**
+**Invoices → Money & tax year** shows income by month and by UK tax year (6 April to 5 April), and who owes what.
+**Download spreadsheet** gives you every invoice in a CSV file.
+
 **What's my booking form link?**
 Your app's address with `/book` on the end, for example `https://ctrinn-hq.yourname.workers.dev/book`. It never
 changes. Share it from the home screen (**Share booking form**) or from **Bookings → Form**.
@@ -166,7 +190,9 @@ won't be able to reach them.
 - **Improve the app:** `worker/routes/ideas.js` talks to GitHub Issues (via the `GITHUB_TOKEN` secret);
   `.github/workflows/app-ideas.yml` runs Claude Code (via the `CLAUDE_CODE_OAUTH_TOKEN` repository secret) to reply,
   build on branch `idea-N`, merge, or revert. Rules for Claude are in `CLAUDE.md`.
-- **Scheduled job:** cron at `0 2 * * *` UTC (the nightly backup; invoice chasing and clip reminders come later).
+- **Scheduled jobs:** `0 2 * * *` UTC runs the backup and marks past gigs completed. `0 9 * * *` UTC sends payment
+  reminders (`worker/reminders.js`, with the rules in `worker/invoice-logic.js`).
+- **Email:** Gmail SMTP via `worker-mailer` (`worker/mail.js`), enabled by the `GMAIL_APP_PASSWORD` secret.
 - **Free-plan CPU limit (10ms per request):** heavy work such as zips and PDFs is done in the browser, not the Worker.
 - **Data conventions:** money is stored in pence. Dates are `YYYY-MM-DD`, worked out in Europe/London time.
 - **Commands:**

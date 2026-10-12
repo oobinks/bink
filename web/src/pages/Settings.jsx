@@ -9,6 +9,7 @@ const TABS = [
   { id: 'business', label: 'Your details' },
   { id: 'pricing', label: 'Prices' },
   { id: 'form', label: 'Booking form' },
+  { id: 'email', label: 'Emails & reminders' },
   { id: 'phone', label: 'Phone & calendar' },
   { id: 'bank', label: 'Bank details' },
   { id: 'invoicing', label: 'Invoicing' },
@@ -35,8 +36,8 @@ function useSave(section, onSaved) {
   return { save, msg, busy };
 }
 
-function Field({ label, hint, value, onChange, type = 'text', ...rest }) {
-  const id = label.toLowerCase().replace(/\W+/g, '-');
+function Field({ label, hint, value, onChange, type = 'text', id: givenId, ...rest }) {
+  const id = givenId || label.toLowerCase().replace(/\W+/g, '-');
   const Tag = type === 'textarea' ? 'textarea' : 'input';
   return (
     <div className="field">
@@ -326,6 +327,79 @@ function FormTab({ settings, reload }) {
   );
 }
 
+const PLACEHOLDERS = '{first_name} {client_name} {number} {amount} {due_date} {issue_date} {event} {link} {dj_name}';
+
+function EmailTab({ settings, reload }) {
+  const [ready, setReady] = useState(null);
+  const [test, setTest] = useState(null);
+  const [v, setV] = useState(settings.emails);
+  const { save, msg, busy } = useSave('emails', (saved) => { setV(saved); reload(); });
+  useEffect(() => { api('/email-status').then((r) => setReady(r.ready)).catch(() => setReady(false)); }, []);
+  const setStep = (i, k) => (val) => setV((o) => ({ ...o, steps: o.steps.map((st, j) => (j === i ? { ...st, [k]: val } : st)) }));
+  const sendTest = async () => {
+    setTest({ ok: true, text: 'Sending…' });
+    try {
+      await api('/invoices/test-email', { method: 'POST' });
+      setTest({ ok: true, text: `Sent. Check ${settings.business.email}` });
+    } catch (err) {
+      setTest({ ok: false, text: err.message });
+    }
+  };
+  const stepTitle = (d) => (d < 0 ? `${-d} days before the due date` : d === 0 ? 'On the due date' : `${d} days overdue`);
+
+  return (
+    <>
+      <div className="card">
+        <h3>Sending from Gmail</h3>
+        {ready === null ? null : ready ? (
+          <>
+            <p className="lead">✅ Connected. Invoices and reminders are emailed from {settings.business.email} and show up in your Gmail Sent folder.</p>
+            <button className="btn block" onClick={sendTest}>Send me a test email</button>
+            {test && <div className={`msg ${test.ok ? 'ok' : 'err'}`}>{test.text}</div>}
+          </>
+        ) : (
+          <>
+            <p className="lead">Not connected yet. Until it is, you send invoices from your own email app (one tap), and on reminder days the app pings your phone so you can chase in one tap.</p>
+            <p className="lead">To let the app email for you (takes 2 minutes):</p>
+            <ol className="steps">
+              <li>On <b>myaccount.google.com/security</b>, make sure <b>2-Step Verification</b> is on.</li>
+              <li>Go to <b>myaccount.google.com/apppasswords</b>, type the name <b>DJ HQ</b>, and tap <b>Create</b>. Copy the 16-letter password.</li>
+              <li>In Cloudflare: <b>Workers &amp; Pages → ctrinn-hq → Settings → Variables and Secrets → Add</b>. Set the type to <b>Secret</b>, the name to <b>GMAIL_APP_PASSWORD</b>, and paste the password. Tap <b>Deploy</b>.</li>
+            </ol>
+          </>
+        )}
+      </div>
+
+      <form className="card" style={{ marginTop: 14 }} onSubmit={(e) => { e.preventDefault(); save(v); }}>
+        <h3>Invoice email</h3>
+        <p className="lead">Words in curly brackets are filled in for you: {PLACEHOLDERS}</p>
+        <Field label="Subject" value={v.invoiceSubject} onChange={(x) => setV((o) => ({ ...o, invoiceSubject: x }))} />
+        <Field label="Message" type="textarea" rows={8} value={v.invoiceBody} onChange={(x) => setV((o) => ({ ...o, invoiceBody: x }))} />
+
+        <div className="row-head" style={{ marginTop: 18 }}>
+          <h3>Payment reminders</h3>
+          <label className="switch"><input type="checkbox" checked={v.chaseOn} onChange={(e) => setV((o) => ({ ...o, chaseOn: e.target.checked }))} /> {v.chaseOn ? 'On' : 'Off'}</label>
+        </div>
+        <p className="lead">Sent in the morning for unpaid invoices. You can pause them for any single invoice.</p>
+        {v.chaseOn && v.steps.map((st, i) => (
+          <details className="step" key={i} open={false}>
+            <summary>
+              <label className="switch" onClick={(e) => e.stopPropagation()}>
+                <input type="checkbox" checked={st.on} onChange={(e) => setStep(i, 'on')(e.target.checked)} />
+              </label>
+              <span>{stepTitle(Number(st.days))}</span>
+            </summary>
+            <Field id={`step${i}-days`} label="Days from due date (minus = before)" type="number" value={st.days} onChange={setStep(i, 'days')} />
+            <Field id={`step${i}-subject`} label="Subject" value={st.subject} onChange={setStep(i, 'subject')} />
+            <Field id={`step${i}-body`} label="Message" type="textarea" rows={7} value={st.body} onChange={setStep(i, 'body')} />
+          </details>
+        ))}
+        <SaveBar busy={busy} msg={msg} />
+      </form>
+    </>
+  );
+}
+
 function SecurityTab() {
   const everywhere = async () => {
     if (!confirm('Log out on every device, including this one?')) return;
@@ -423,6 +497,7 @@ export default function Settings() {
       {tab === 'pricing' && <PricingTab settings={settings} reload={reload} />}
       {tab === 'form' && <FormTab settings={settings} reload={reload} />}
       {tab === 'phone' && <PhoneTab />}
+      {tab === 'email' && <EmailTab settings={settings} reload={reload} />}
       {tab === 'data' && <DataTab settings={settings} reload={reload} />}
       {tab === 'history' && <HistoryTab />}
       {tab === 'security' && <SecurityTab />}

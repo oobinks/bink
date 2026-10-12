@@ -63,7 +63,7 @@ app.get('/', async (c) => {
   if (toInvoice.length) {
     attention.push({ kind: 'invoice', tone: 'violet',
       title: `${toInvoice.length} past ${toInvoice.length === 1 ? 'gig needs' : 'gigs need'} an invoice`,
-      detail: toInvoice.map((b) => b.client_name).join(', '), link: '/invoices' });
+      detail: toInvoice.map((b) => b.client_name).join(', '), link: toInvoice.length === 1 ? `/bookings/${toInvoice[0].id}` : '/bookings?tab=completed' });
   }
   if (clips.today) {
     attention.push({ kind: 'clips', tone: 'violet', title: `${plural(clips.today, 'clip', 'clips')} to post today`,

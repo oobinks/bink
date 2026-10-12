@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Phone, MessageSquare, Mail, Camera, MapPin, AlertTriangle, Pencil, Send, Link2, FileDown,
-  Check, X, Plus, Star, CalendarCheck, ExternalLink,
+  Check, X, Plus, Star, CalendarCheck, ExternalLink, Receipt,
 } from 'lucide-react';
 import { api } from '../api.js';
 import { money, fromPence, toPence, longDate, timeAgo } from '../format.js';
@@ -206,6 +206,15 @@ export default function BookingDetail() {
     }
   };
 
+  const createInvoice = async () => {
+    try {
+      const { id: invoiceId } = await api(`/invoices/from-booking/${b.id}`, { method: 'POST' });
+      navigate(`/invoices/${invoiceId}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const remove = async () => {
     if (!confirm(`Delete ${b.client_name}'s booking for good? (Use Decline instead to keep a record.)`)) return;
     await api(`/bookings/${b.id}`, { method: 'DELETE' });
@@ -266,6 +275,11 @@ export default function BookingDetail() {
         {['new', 'quoted', 'confirmed'].includes(b.status) && <button className="btn" onClick={() => setStatus('declined')}>Decline</button>}
         {['declined', 'completed'].includes(b.status) && <button className="btn" onClick={() => setStatus(b.quote_sent_at ? 'quoted' : 'new')}>Reopen</button>}
       </div>
+      {['confirmed', 'completed'].includes(b.status) && (
+        b.invoice
+          ? <Link className="btn block" style={{ marginTop: 10 }} to={`/invoices/${b.invoice.id}`}><Receipt size={18} /> View invoice {b.invoice.number}</Link>
+          : <button className="btn primary block" style={{ marginTop: 10 }} onClick={createInvoice}><Receipt size={18} /> Create invoice</button>
+      )}
       {b.quote_accepted_at && <p className="hint">Client accepted the quote online on {new Date(b.quote_accepted_at).toLocaleDateString('en-GB')}.</p>}
       {error && <div className="msg err">{error}</div>}
 
