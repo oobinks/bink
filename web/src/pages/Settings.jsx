@@ -336,16 +336,17 @@ const PLACEHOLDERS = '{first_name} {client_name} {number} {amount} {due_date} {i
 
 function EmailTab({ settings, reload }) {
   const [ready, setReady] = useState(null);
+  const [from, setFrom] = useState('');
   const [test, setTest] = useState(null);
   const [v, setV] = useState(settings.emails);
   const { save, msg, busy } = useSave('emails', (saved) => { setV(saved); reload(); });
-  useEffect(() => { api('/email-status').then((r) => setReady(r.ready)).catch(() => setReady(false)); }, []);
+  useEffect(() => { api('/email-status').then((r) => { setReady(r.ready); setFrom(r.from); }).catch(() => setReady(false)); }, []);
   const setStep = (i, k) => (val) => setV((o) => ({ ...o, steps: o.steps.map((st, j) => (j === i ? { ...st, [k]: val } : st)) }));
   const sendTest = async () => {
     setTest({ ok: true, text: 'Sending…' });
     try {
       await api('/invoices/test-email', { method: 'POST' });
-      setTest({ ok: true, text: `Sent. Check ${settings.business.email}` });
+      setTest({ ok: true, text: `Sent from ${from}. Check the inbox of ${settings.business.email}` });
     } catch (err) {
       setTest({ ok: false, text: err.message });
     }
@@ -358,7 +359,7 @@ function EmailTab({ settings, reload }) {
         <h3>Sending from Gmail</h3>
         {ready === null ? null : ready ? (
           <>
-            <p className="lead">✅ Connected. Invoices and reminders are emailed from {settings.business.email} and show up in your Gmail Sent folder.</p>
+            <p className="lead">✅ Connected. Invoices and reminders are emailed from <b>{from}</b>, and show up in that Gmail's Sent folder. Replies go back to it too.</p>
             <button className="btn block" onClick={sendTest}>Send me a test email</button>
             {test && <div className={`msg ${test.ok ? 'ok' : 'err'}`}>{test.text}</div>}
           </>

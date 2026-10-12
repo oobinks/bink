@@ -13,7 +13,7 @@ import bookings from './routes/bookings.js';
 import invoices from './routes/invoices.js';
 import clients from './routes/clients.js';
 import { runReminders } from './reminders.js';
-import { emailReady } from './mail.js';
+import { emailReady, senderAddress } from './mail.js';
 import publicRoutes, { calendarFeed, calendarToken } from './routes/public.js';
 import { getVapid, saveSubscription, notify } from './push.js';
 import { todayUK, now, logActivity } from './db.js';
@@ -56,7 +56,7 @@ app.route('/api/ideas', ideas);
 app.route('/api/bookings', bookings);
 app.route('/api/invoices', invoices);
 app.route('/api/clients', clients);
-app.get('/api/email-status', (c) => c.json({ ready: emailReady(c.env) }));
+app.get('/api/email-status', async (c) => c.json({ ready: emailReady(c.env), from: await senderAddress(c.env) }));
 
 // Phone notifications.
 app.get('/api/push/key', async (c) => c.json({ publicKey: (await getVapid(c.env.DB)).publicKey }));

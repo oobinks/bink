@@ -73,7 +73,9 @@ With it, invoices and polite reminders go out by themselves from ctrinn.music@gm
    16-letter password it shows. This is a separate password just for the app; your normal one stays private.
 3. In Cloudflare: **Workers & Pages → ctrinn-hq → Settings → Variables and Secrets → Add**. Set **Type** to **Secret**,
    **name** to `GMAIL_APP_PASSWORD`, and paste the password as the value. Click **Deploy**.
-4. In the app: **Settings → Emails & reminders → Send me a test email**.
+4. To send from a **different Gmail** than the one in your details: do steps 1 and 2 on *that* account, and in
+   Cloudflare also add a **Text** variable called `GMAIL_ADDRESS` containing that Gmail address. Replies go to it too.
+5. In the app: **Settings → Emails & reminders → Send me a test email**.
 
 ### 7. Fill in your details
 - **More → Settings → Bank details**: enter your details. They only appear on invoices.

@@ -145,5 +145,7 @@ test('emails & reminders settings are validated', async () => {
   assert.equal((await call('PUT', '/api/settings/emails', { steps: s.steps.slice(0, 2) })).status, 400);
   const changed = s.steps.map((st, i) => (i === 3 ? { ...st, days: 21 } : st));
   assert.equal((await call('PUT', '/api/settings/emails', { steps: changed, chaseOn: true })).body.steps[3].days, 21);
-  assert.equal((await call('GET', '/api/email-status')).body.ready, false);
+  const status = (await call('GET', '/api/email-status')).body;
+  assert.equal(status.ready, false);
+  assert.equal(status.from, 'ctrinn.music@gmail.com', 'sends from the Settings email unless GMAIL_ADDRESS is set');
 });
