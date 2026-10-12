@@ -162,6 +162,11 @@ const migrations = [
     `ALTER TABLE invoices ADD COLUMN client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL`,
     ...LINK_CLIENTS_SQL,
   ],
+  [
+    // Deposits: £X to secure the date, balance on the night.
+    `ALTER TABLE bookings ADD COLUMN deposit_pence INTEGER`,
+    `ALTER TABLE bookings ADD COLUMN deposit_paid_at TEXT`,
+  ],
 ];
 
 let ready = false;

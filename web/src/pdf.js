@@ -93,6 +93,12 @@ async function brandedPdf(d) {
   text(gbp(d.totalPence), R, y, { font: bold, size: 18, align: 'right' });
   y -= 18;
   if (d.vatNote) text(d.vatNote, R, y, { size: 8.5, color: MUTED, align: 'right' });
+  // e.g. deposit now / balance on the night
+  for (const [label, pence, strong] of d.split || []) {
+    y -= 18;
+    text(label, R - 110, y, { font: strong ? bold : reg, size: 10.5, color: strong ? [0.75, 0.2, 0.45] : MUTED, align: 'right' });
+    text(gbp(pence), R, y, { font: strong ? bold : reg, size: 10.5, align: 'right' });
+  }
 
   // How to pay (invoices)
   if (d.pay) {
@@ -144,10 +150,14 @@ export function quotePdf(q, link) {
       where: [q.venue, q.venueAddress].filter(Boolean).join(', ').replace(/\n/g, ', '),
     },
     items: q.items, totalPence: q.totalPence, vatNote: q.vatNote, message: q.message,
+    split: q.depositPence > 0 ? [['Deposit to secure your date', q.depositPence, true], ['Balance payable on the night', q.balancePence, false]] : [],
     footer: {
       heading: 'Happy to go ahead?',
       line: link ? 'Accept online in one tap:' : `Just reply to ${q.business.email} to confirm your date.`,
-      link, small: `Your date is secured once confirmed. Questions? ${q.business.email}`,
+      link,
+      small: q.depositPence > 0
+        ? `Your date is secured once the ${gbp(q.depositPence)} deposit is paid; the balance is due on the night. Questions? ${q.business.email}`
+        : `Your date is secured once confirmed. Questions? ${q.business.email}`,
     },
   });
 }

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { now, logActivity, all } from '../db.js';
+import { now, todayUK, logActivity, all } from '../db.js';
 import { STATUSES, cleanBooking, cleanExtras, quoteTotal } from '../booking-fields.js';
 import { getSetting } from '../settings.js';
 import { linkClient } from '../clients.js';
@@ -7,7 +7,7 @@ import { linkClient } from '../clients.js';
 const app = new Hono();
 
 const LIST_COLS = `id, status, source, client_name, event_date, start_time, end_time, venue_name, event_type,
-  budget_pence, price_pence, extras, seen_at, quote_sent_at, created_at`;
+  budget_pence, price_pence, extras, seen_at, quote_sent_at, quote_accepted_at, deposit_pence, deposit_paid_at, created_at`;
 
 const withTotal = (b) => ({ ...b, extras: JSON.parse(b.extras || '[]'), total_pence: quoteTotal(b) });
 
@@ -134,9 +134,16 @@ app.put('/:id{[0-9]+}/quote', async (c) => {
   }
   const miles = input.travel_miles === '' || input.travel_miles == null ? null : Math.round(Number(input.travel_miles));
   const message = String(input.quote_message ?? '').trim().slice(0, 2000) || null;
-  await db.prepare(`UPDATE bookings SET price_pence = ?, extras = ?, travel_miles = ?, quote_message = ?, updated_at = ? WHERE id = ?`)
-    .bind(price, JSON.stringify(extras), Number.isFinite(miles) ? miles : null, message, now(), b.id).run();
-  return c.json({ ok: true, total_pence: price + extras.reduce((a, e) => a + e.pence, 0) });
+  const total = price + extras.reduce((a, e) => a + e.pence, 0);
+  let deposit = b.deposit_pence ?? (await getSetting(db, 'pricing')).depositPence;
+  if ('deposit_pence' in input) {
+    deposit = Math.round(Number(input.deposit_pence));
+    if (!Number.isFinite(deposit) || deposit < 0) return c.json({ error: 'Check the deposit' }, 400);
+  }
+  if (deposit > total) return c.json({ error: "The deposit can't be more than the total" }, 400);
+  await db.prepare(`UPDATE bookings SET price_pence = ?, extras = ?, travel_miles = ?, quote_message = ?, deposit_pence = ?, updated_at = ? WHERE id = ?`)
+    .bind(price, JSON.stringify(extras), Number.isFinite(miles) ? miles : null, message, deposit, now(), b.id).run();
+  return c.json({ ok: true, total_pence: total, deposit_pence: deposit });
 });
 
 // Make the quote's private link and mark it as sent.
@@ -150,11 +157,30 @@ app.post('/:id{[0-9]+}/quote/send', async (c) => {
     token = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('');
   }
   const status = b.status === 'new' ? 'quoted' : b.status;
-  await db.prepare(`UPDATE bookings SET quote_token = ?, quote_sent_at = COALESCE(quote_sent_at, ?), status = ?, updated_at = ? WHERE id = ?`)
-    .bind(token, now(), status, now(), b.id).run();
+  const deposit = Math.min(b.deposit_pence ?? (await getSetting(db, 'pricing')).depositPence, quoteTotal(b));
+  await db.prepare(`UPDATE bookings SET quote_token = ?, quote_sent_at = COALESCE(quote_sent_at, ?), status = ?, deposit_pence = ?, updated_at = ? WHERE id = ?`)
+    .bind(token, now(), status, deposit, now(), b.id).run();
   if (!b.quote_sent_at) await logActivity(db, 'Quote sent', `${b.client_name}: £${(quoteTotal(b) / 100).toFixed(2)}`);
   const business = await getSetting(db, 'business');
   return c.json({ path: `/q/${token}`, status, djName: business.djName });
+});
+
+// The client's deposit has arrived: that confirms the booking.
+app.post('/:id{[0-9]+}/deposit', async (c) => {
+  const db = c.env.DB;
+  const b = await load(c);
+  if (!b) return c.json({ error: 'Booking not found' }, 404);
+  const { paid = true, date } = (await c.req.json().catch(() => null)) || {};
+  if (!paid) {
+    await db.prepare('UPDATE bookings SET deposit_paid_at = NULL, updated_at = ? WHERE id = ?').bind(now(), b.id).run();
+    await logActivity(db, 'Deposit marked as not received', b.client_name);
+    return c.json({ ok: true, clashes: [] });
+  }
+  const on = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : todayUK();
+  const status = ['new', 'quoted'].includes(b.status) ? 'confirmed' : b.status;
+  await db.prepare('UPDATE bookings SET deposit_paid_at = ?, status = ?, updated_at = ? WHERE id = ?').bind(on, status, now(), b.id).run();
+  await logActivity(db, 'Deposit received, booking confirmed', `${b.client_name}: £${((b.deposit_pence || 0) / 100).toFixed(2)}`);
+  return c.json({ ok: true, clashes: status === 'confirmed' ? await clashes(db, b) : [] });
 });
 
 app.delete('/:id{[0-9]+}', async (c) => {

@@ -50,6 +50,7 @@ function QuoteBuilder({ b, pricing, onSaved }) {
   });
   const [miles, setMiles] = useState(b.travel_miles ?? '');
   const [message, setMessage] = useState(b.quote_message || '');
+  const [deposit, setDeposit] = useState(fromPence(b.deposit_pence ?? pricing.depositPence));
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState(null);
   const [sent, setSent] = useState(b.quote_token ? `${window.location.origin}/q/${b.quote_token}` : null);
@@ -77,7 +78,7 @@ function QuoteBuilder({ b, pricing, onSaved }) {
     if (toPence(price) == null) throw new Error('Set a price first');
     if (extrasPence.some((e) => !e.label)) throw new Error('Give each extra a name');
     await api(`/bookings/${b.id}/quote`, {
-      method: 'PUT', body: { price_pence: toPence(price), extras: extrasPence, travel_miles: miles, quote_message: message },
+      method: 'PUT', body: { price_pence: toPence(price), extras: extrasPence, travel_miles: miles, quote_message: message, deposit_pence: toPence(deposit) ?? 0 },
     });
   };
 
@@ -110,7 +111,9 @@ function QuoteBuilder({ b, pricing, onSaved }) {
     const url = await send();
     const first = b.client_name.split(' ')[0];
     const subject = `Your DJ quote: ${b.event_type || 'event'} on ${longDate(b.event_date)}`;
-    const body = `Hi ${first},\n\nThanks for your enquiry! Here's your quote (${money(total)}):\n${url}\n\nYou can accept it online in one tap, and it's also downloadable as a PDF.\n\nAny questions, just reply to this email.\n\nThanks,\nctrinn`;
+    const dep = toPence(deposit) || 0;
+    const terms = dep ? `\n\nTo secure your date there's a ${money(dep)} deposit, and the balance of ${money(total - dep)} is paid on the night.` : '';
+    const body = `Hi ${first},\n\nThanks for your enquiry! Here's your quote (${money(total)}):\n${url}${terms}\n\nYou can accept it online in one tap, and it's also downloadable as a PDF.\n\nAny questions, just reply to this email.\n\nThanks,\nctrinn`;
     window.location.href = `mailto:${b.client_email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   });
   const pdf = run('pdf', async () => {
@@ -165,6 +168,11 @@ function QuoteBuilder({ b, pricing, onSaved }) {
       </div>
 
       <div className="quote-total"><span>Total</span><b>{money(total)}</b></div>
+      <div className="extra-row deposit-row">
+        <label htmlFor="deposit">Deposit to secure the date</label>
+        <input id="deposit" className="input amount" inputMode="decimal" value={deposit} onChange={(e) => setDeposit(e.target.value)} />
+      </div>
+      {(toPence(deposit) || 0) > 0 && <p className="hint" style={{ margin: '0 0 8px' }}>Balance on the night: {money(Math.max(0, total - (toPence(deposit) || 0)))}</p>}
 
       <div className="send-grid">
         <button className="btn primary" disabled={!!busy} onClick={shareLink}><Send size={18} /> {busy === 'share' ? '…' : sent ? 'Share again' : 'Send quote'}</button>
@@ -232,6 +240,18 @@ export default function BookingDetail() {
     }
   };
 
+  const depositReceived = async () => {
+    const amount = money(b.deposit_pence);
+    if (!confirm(`Has the ${amount} deposit from ${b.client_name} arrived? This confirms the booking.`)) return;
+    if (b.clashes.length && !confirm(`⚠️ You're already booked on this date (${b.clashes.map((c) => c.client_name).join(', ')}). Confirm anyway?`)) return;
+    try {
+      await api(`/bookings/${b.id}/deposit`, { method: 'POST', body: { paid: true } });
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const createInvoice = async () => {
     try {
       const { id: invoiceId } = await api(`/invoices/from-booking/${b.id}`, { method: 'POST' });
@@ -271,6 +291,13 @@ export default function BookingDetail() {
         </div>
       )}
 
+      {b.status === 'quoted' && b.quote_accepted_at && b.deposit_pence > 0 && !b.deposit_paid_at && (
+        <div className="card deposit-due">
+          <h3>Accepted: waiting for the {money(b.deposit_pence)} deposit</h3>
+          <p className="lead">{b.client_name.split(' ')[0]} accepted the quote on {new Date(b.quote_accepted_at).toLocaleDateString('en-GB')}. Tap below when the deposit lands to confirm the booking.</p>
+          <button className="btn primary block" onClick={depositReceived}><Check size={18} /> Deposit received</button>
+        </div>
+      )}
       {b.status === 'confirmed' && <TimeTreeCard b={b} />}
 
       <ContactButtons b={b} />
@@ -285,6 +312,9 @@ export default function BookingDetail() {
         <Fact label="Guests">{b.guests}</Fact>
         <Fact label="Needs equipment">{b.equipment && b.equipment[0].toUpperCase() + b.equipment.slice(1)}</Fact>
         <Fact label="Budget">{b.budget_pence != null && money(b.budget_pence)}</Fact>
+        <Fact label="Deposit">{b.deposit_pence > 0 && (b.deposit_paid_at
+          ? `${money(b.deposit_pence)} paid ${new Date(b.deposit_paid_at.slice(0, 10) + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+          : `${money(b.deposit_pence)} not paid yet`)}</Fact>
         <Fact label="Prefers">{b.contact_method && { email: 'Email', phone: 'Phone / Text', instagram: 'Instagram' }[b.contact_method]}</Fact>
         <Fact label="Phone">{b.client_phone}</Fact>
         <Fact label="Email">{b.client_email}</Fact>
@@ -297,8 +327,10 @@ export default function BookingDetail() {
       </div>
 
       <div className="section btn-row">
-        {['new', 'quoted'].includes(b.status) && (
-          <button className="btn primary" style={{ flex: 1 }} onClick={() => setStatus('confirmed')}><CalendarCheck size={18} /> Confirm booking</button>
+        {['new', 'quoted'].includes(b.status) && !(b.quote_accepted_at && b.deposit_pence > 0 && !b.deposit_paid_at) && (
+          b.deposit_pence > 0 && !b.deposit_paid_at
+            ? <button className="btn primary" style={{ flex: 1 }} onClick={depositReceived}><CalendarCheck size={18} /> Deposit paid: confirm</button>
+            : <button className="btn primary" style={{ flex: 1 }} onClick={() => setStatus('confirmed')}><CalendarCheck size={18} /> Confirm booking</button>
         )}
         {b.status === 'confirmed' && <button className="btn" style={{ flex: 1 }} onClick={() => setStatus('completed')}><Check size={18} /> Mark completed</button>}
         {['new', 'quoted', 'confirmed'].includes(b.status) && <button className="btn" onClick={() => setStatus('declined')}>Decline</button>}

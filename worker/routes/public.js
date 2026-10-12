@@ -65,6 +65,11 @@ app.post('/enquiry', async (c) => {
   return c.json({ ok: true, message: form.thanks });
 });
 
+async function bankDetails(db) {
+  const bank = await getSetting(db, 'bank');
+  return { accountName: bank.accountName, bankName: bank.bankName, sortCode: bank.sortCode, accountNumber: bank.accountNumber };
+}
+
 async function findQuote(db, token) {
   if (!/^[0-9a-f]{32}$/.test(token)) return null;
   const b = await db.prepare(`SELECT * FROM bookings WHERE quote_token = ? AND quote_sent_at IS NOT NULL`).bind(token).first();
@@ -93,6 +98,12 @@ app.get('/quote/:token', async (c) => {
     items,
     totalPence: quoteTotal(b),
     accepted: Boolean(b.quote_accepted_at) || ['confirmed', 'completed'].includes(b.status),
+    confirmed: ['confirmed', 'completed'].includes(b.status),
+    depositPence: b.deposit_pence || 0,
+    balancePence: quoteTotal(b) - (b.deposit_pence || 0),
+    depositPaid: Boolean(b.deposit_paid_at),
+    // Bank details only once they've accepted and a deposit is due.
+    bank: b.quote_accepted_at && b.deposit_pence && !b.deposit_paid_at ? await bankDetails(db) : null,
     expired: b.event_date && b.event_date < todayUK(),
   });
 });
@@ -104,11 +115,21 @@ app.post('/quote/:token/accept', async (c) => {
   if (b.quote_accepted_at || b.status !== 'quoted') return c.json({ ok: true });
   if (b.event_date && b.event_date < todayUK()) return c.json({ error: 'This quote has expired. Please get in touch.' }, 400);
   const ts = now();
-  await db.prepare(`UPDATE bookings SET status = 'confirmed', quote_accepted_at = ?, updated_at = ? WHERE id = ? AND status = 'quoted'`)
-    .bind(ts, ts, b.id).run();
+  const depositDue = b.deposit_pence > 0 && !b.deposit_paid_at;
+  // With a deposit to pay, the booking is confirmed once it arrives (you tap "Deposit received").
+  await db.prepare(`UPDATE bookings SET status = ?, quote_accepted_at = ?, updated_at = ? WHERE id = ? AND status = 'quoted'`)
+    .bind(depositDue ? 'quoted' : 'confirmed', ts, ts, b.id).run();
   const clash = await db.prepare(`SELECT client_name FROM bookings WHERE status = 'confirmed' AND event_date = ? AND id != ? LIMIT 1`)
     .bind(b.event_date, b.id).first();
-  await logActivity(db, 'Quote accepted by client', `${b.client_name}: ${b.event_date}`);
+  await logActivity(db, 'Quote accepted by client', `${b.client_name}: ${b.event_date}${depositDue ? ' (deposit due)' : ''}`);
+  if (depositDue) {
+    c.executionCtx.waitUntil(notify(c.env, {
+      title: `🎉 ${b.client_name} accepted the quote`,
+      body: `£${(b.deposit_pence / 100).toFixed(0)} deposit due to secure ${shortDate(b.event_date)}${clash ? ` ⚠️ Clashes with ${clash.client_name}` : ''}. Tap "Deposit received" once it lands.`,
+      url: `/bookings/${b.id}`,
+    }));
+    return c.json({ ok: true });
+  }
   c.executionCtx.waitUntil(notify(c.env, {
     title: `🎉 Booked: ${b.client_name} accepted`,
     body: `${b.event_type || 'Gig'} · ${shortDate(b.event_date)}${clash ? ` ⚠️ Clashes with ${clash.client_name}` : ''}. Tap to add it to TimeTree.`,

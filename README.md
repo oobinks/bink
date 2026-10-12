@@ -155,7 +155,12 @@ changes. Share it from the home screen (**Share booking form**) or from **Bookin
 **How do quotes work?**
 1. Open an enquiry, tap a price preset, add any extras, then tap **Send quote**.
 2. The client gets a private link where they can see the quote, download it as a PDF and tap **Accept**.
-3. When they accept, the booking moves to **Confirmed**, appears in your calendar, and you get a notification.
+3. Every quote shows a deposit to secure the date (£100 by default; change it in **Settings → Prices** or on any
+   quote), plus the balance payable on the night.
+4. When the client accepts, they're shown your bank details to pay the deposit, and you get a notification. The booking
+   waits as **Deposit due** until you tap **Deposit received**. Then it's **Confirmed** and goes into your calendar.
+5. The invoice for the gig takes the deposit off, and the balance is due on the night. Deposits count as income
+   on the day you received them.
 
 
 **How do I change my password?**

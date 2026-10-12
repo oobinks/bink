@@ -30,7 +30,9 @@ function BookingRow({ b, today }) {
     <Link to={`/bookings/${b.id}`} className="row">
       <div className={`date-chip${b.event_date === today ? ' today' : ''}`}><b>{day}</b><small>{month}</small></div>
       <div className="row-main">
-        <div className="row-title">{!b.seen_at && <span className="dot pink inline" />}{b.client_name}</div>
+        <div className="row-title">{!b.seen_at && <span className="dot pink inline" />}{b.client_name}
+          {b.status === 'quoted' && b.quote_accepted_at && b.deposit_pence > 0 && !b.deposit_paid_at && <span className="pill gold" style={{ marginLeft: 8 }}>Deposit due</span>}
+        </div>
         <div className="row-sub">{[b.event_type, b.venue_name].filter(Boolean).join(' · ')}</div>
       </div>
       <div className="row-end">

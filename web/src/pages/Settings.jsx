@@ -211,7 +211,7 @@ function PricingTab({ settings, reload }) {
   const [presets, setPresets] = useState(p.presets.map((x) => ({ name: x.name, amount: fromPence(x.pence) })));
   const [rates, setRates] = useState({
     extraHour: fromPence(p.extraHourPence), equipment: fromPence(p.equipmentPence),
-    perMile: fromPence(p.travelPerMilePence), freeMiles: String(p.freeMiles),
+    perMile: fromPence(p.travelPerMilePence), freeMiles: String(p.freeMiles), deposit: fromPence(p.depositPence),
   });
   const { save, msg, busy } = useSave('pricing', reload);
   const setRate = (k) => (val) => setRates((r) => ({ ...r, [k]: val }));
@@ -220,7 +220,7 @@ function PricingTab({ settings, reload }) {
     save({
       presets: presets.filter((x) => x.name.trim()).map((x) => ({ name: x.name, pence: toPence(x.amount) ?? -1 })),
       extraHourPence: toPence(rates.extraHour) ?? '', equipmentPence: toPence(rates.equipment) ?? '',
-      travelPerMilePence: toPence(rates.perMile) ?? '', freeMiles: rates.freeMiles,
+      travelPerMilePence: toPence(rates.perMile) ?? '', freeMiles: rates.freeMiles, depositPence: toPence(rates.deposit) ?? '',
     });
   };
   return (
@@ -245,6 +245,9 @@ function PricingTab({ settings, reload }) {
         <Field label="Travel per mile (£)" inputMode="decimal" value={rates.perMile} onChange={setRate('perMile')} />
         <Field label="Free miles" inputMode="numeric" value={rates.freeMiles} onChange={setRate('freeMiles')} />
       </div>
+      <h3 style={{ marginTop: 6 }}>Deposit</h3>
+      <Field label="Deposit to secure a date (£)" inputMode="decimal" value={rates.deposit} onChange={setRate('deposit')}
+        hint="Shown on every quote; the balance is paid on the night. Change it on any single quote, or set 0 for none." />
       <SaveBar busy={busy} msg={msg} />
     </form>
   );

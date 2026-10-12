@@ -12,13 +12,16 @@ const view = (inv, today = todayUK()) => ({ ...inv, items: JSON.parse(inv.items 
 
 function cleanItems(list) {
   if (!Array.isArray(list) || !list.length) throw new Error('Add at least one line');
-  return list.slice(0, 30).map((it) => {
+  const out = list.slice(0, 30).map((it) => {
     const description = String(it?.description ?? '').trim().slice(0, 200);
     const pence = Math.round(Number(it?.pence));
     if (!description) throw new Error('Each line needs a description');
-    if (!Number.isFinite(pence) || pence < 0) throw new Error(`Check the amount for "${description}"`);
+    // Minus amounts are allowed (e.g. a deposit already paid), as long as the total isn't below zero.
+    if (!Number.isFinite(pence)) throw new Error(`Check the amount for "${description}"`);
     return { description, pence };
   });
+  if (out.reduce((a, i) => a + i.pence, 0) < 0) throw new Error("The total can't be below zero");
+  return out;
 }
 
 const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || '') && !Number.isNaN(Date.parse(v));
@@ -44,7 +47,7 @@ export async function createInvoice(db, fields) {
   const res = await db.prepare(`INSERT INTO invoices (number, booking_id, client_id, client_name, client_email, client_address, issue_date,
     due_date, items, total_pence, status, notes, token, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?)`)
     .bind(number, fields.booking_id ?? null, clientId, fields.client_name, fields.client_email || null, fields.client_address || null,
-      issue, addDays(issue, cfg.paymentTermsDays), JSON.stringify(items), items.reduce((a, i) => a + i.pence, 0),
+      issue, fields.due_date || addDays(issue, cfg.paymentTermsDays), JSON.stringify(items), items.reduce((a, i) => a + i.pence, 0),
       fields.notes || null, randomToken(), ts, ts).run();
   await logActivity(db, `Invoice ${number} created`, fields.client_name);
   return res.meta.last_row_id;
@@ -62,7 +65,10 @@ app.get('/report', async (c) => {
   const db = c.env.DB;
   const today = todayUK();
   const [paid, unpaid] = await db.batch([
-    db.prepare(`SELECT substr(paid_at, 1, 10) AS paid_on, total_pence FROM invoices WHERE status = 'paid' AND paid_at IS NOT NULL`),
+    // Income = paid invoices + deposits (counted on the day they arrived).
+    db.prepare(`SELECT substr(paid_at, 1, 10) AS paid_on, total_pence FROM invoices WHERE status = 'paid' AND paid_at IS NOT NULL
+      UNION ALL
+      SELECT substr(deposit_paid_at, 1, 10), deposit_pence FROM bookings WHERE deposit_paid_at IS NOT NULL AND deposit_pence > 0`),
     db.prepare(`SELECT id, number, client_name, due_date, total_pence, viewed_at, status FROM invoices WHERE status = 'sent' ORDER BY due_date`),
   ]).then((r) => r.map((x) => x.results));
 
@@ -109,6 +115,13 @@ app.get('/export.csv', async (c) => {
   const lines = rows.map((r) => [r.number, r.client_name, r.client_email, r.issue_date, r.due_date, invoiceState(r, today),
     (r.total_pence / 100).toFixed(2), r.paid_at ? r.paid_at.slice(0, 10) : '', r.paid_at ? taxYear(r.paid_at.slice(0, 10)) : '',
     JSON.parse(r.items || '[]').map((i) => `${i.description} £${(i.pence / 100).toFixed(2)}`).join('; ')].map(esc).join(','));
+  const deposits = await all(c.env.DB.prepare(`SELECT id, client_name, client_email, deposit_pence, deposit_paid_at FROM bookings
+    WHERE deposit_paid_at IS NOT NULL AND deposit_pence > 0 ORDER BY deposit_paid_at`));
+  for (const d of deposits) {
+    const on = d.deposit_paid_at.slice(0, 10);
+    lines.push([`DEPOSIT-${d.id}`, d.client_name, d.client_email, on, on, 'paid', (d.deposit_pence / 100).toFixed(2), on, taxYear(on),
+      'Booking deposit'].map(esc).join(','));
+  }
   return new Response([head.join(','), ...lines].join('\r\n'), {
     headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="ctrinn-invoices-${today}.csv"` },
   });
@@ -142,10 +155,21 @@ app.post('/from-booking/:bookingId{[0-9]+}', async (c) => {
     { description: `DJ performance: ${what}`, pence: b.price_pence || 0 },
     ...JSON.parse(b.extras || '[]').map((e) => ({ description: e.label, pence: e.pence })),
   ];
+  // Deposit already paid comes off, and the balance is due on the night.
+  let dueDate;
+  let notes;
+  if (b.deposit_paid_at && b.deposit_pence) {
+    const paidOn = new Date(b.deposit_paid_at.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    items.push({ description: `Less deposit paid (${paidOn})`, pence: -b.deposit_pence });
+  }
+  if (b.event_date && b.event_date >= todayUK()) {
+    dueDate = b.event_date;
+    notes = 'Balance payable on the night.';
+  }
   const client = b.client_id ? await db.prepare('SELECT address FROM clients WHERE id = ?').bind(b.client_id).first() : null;
   const id = await createInvoice(db, {
     booking_id: b.id, client_id: b.client_id ?? undefined, client_name: b.client_name, client_email: b.client_email,
-    client_address: client?.address, items,
+    client_address: client?.address, items, due_date: dueDate, notes,
   });
   return c.json({ id });
 });

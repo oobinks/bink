@@ -35,6 +35,7 @@ export const DEFAULT_SETTINGS = {
     equipmentPence: 10000,
     travelPerMilePence: 45,
     freeMiles: 20,
+    depositPence: 10000, // paid to secure the date; the balance is paid on the night
   },
   bookingForm: {
     title: 'Private Party Booking Enquiry',

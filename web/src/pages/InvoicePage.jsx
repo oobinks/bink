@@ -6,7 +6,7 @@ import { api } from '../api.js';
 import { money, longDate } from '../format.js';
 import { invoicePdf, downloadBlob } from '../pdf.js';
 
-function CopyRow({ label, value }) {
+export function CopyRow({ label, value }) {
   const [copied, setCopied] = useState(false);
   if (!value) return null;
   return (

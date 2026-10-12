@@ -31,7 +31,8 @@ app.get('/', async (c) => {
       COALESCE(SUM(status = 'scheduled' AND substr(scheduled_at, 1, 10) = ?), 0) AS today FROM clips`).bind(today),
     db.prepare(`SELECT
       (SELECT COUNT(*) FROM bookings WHERE status = 'confirmed' AND event_date BETWEEN ?1 AND ?2) AS gigsNext30,
-      (SELECT COALESCE(SUM(total_pence), 0) FROM invoices WHERE status = 'paid' AND substr(paid_at, 1, 10) >= ?3) AS earned`)
+      (SELECT COALESCE(SUM(total_pence), 0) FROM invoices WHERE status = 'paid' AND substr(paid_at, 1, 10) >= ?3)
+        + (SELECT COALESCE(SUM(deposit_pence), 0) FROM bookings WHERE substr(deposit_paid_at, 1, 10) >= ?3) AS earned`)
       .bind(today, addDays(today, 30), monthStart),
   ]).then((rs) => rs.map((r) => r.results));
 
@@ -45,6 +46,15 @@ app.get('/', async (c) => {
   for (const g of upcomingGigs.filter((g) => g.event_date === today)) {
     attention.push({ kind: 'gig', tone: 'gold', title: `Gig tonight at ${g.venue_name || 'TBC'}`,
       detail: `${g.start_time || ''}${g.end_time ? '–' + g.end_time : ''} · ${g.client_name}`, link: `/bookings/${g.id}` });
+  }
+  const awaiting = await db.prepare(`SELECT id, client_name, deposit_pence FROM bookings
+    WHERE status = 'quoted' AND quote_accepted_at IS NOT NULL AND deposit_paid_at IS NULL AND deposit_pence > 0
+    ORDER BY event_date`).all().then((r) => r.results);
+  if (awaiting.length) {
+    attention.push({ kind: 'deposit', tone: 'gold',
+      title: `${plural(awaiting.length, 'deposit', 'deposits')} to look out for`,
+      detail: awaiting.map((a) => `${a.client_name} £${(a.deposit_pence / 100).toFixed(0)}`).join(', '),
+      link: awaiting.length === 1 ? `/bookings/${awaiting[0].id}` : '/bookings?tab=quoted' });
   }
   const unseen = newEnquiries.filter((e) => !e.seen_at);
   if (unseen.length) {

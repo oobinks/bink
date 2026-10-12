@@ -22,7 +22,8 @@ const clean = (input) => {
 app.get('/', async (c) => {
   const rows = await all(c.env.DB.prepare(`SELECT c.id, c.name, c.email, c.phone,
       (SELECT COUNT(*) FROM bookings b WHERE b.client_id = c.id AND b.status IN ('confirmed', 'completed')) AS gigs,
-      (SELECT COALESCE(SUM(total_pence), 0) FROM invoices i WHERE i.client_id = c.id AND i.status = 'paid') AS paid_pence,
+      (SELECT COALESCE(SUM(total_pence), 0) FROM invoices i WHERE i.client_id = c.id AND i.status = 'paid')
+        + (SELECT COALESCE(SUM(deposit_pence), 0) FROM bookings b WHERE b.client_id = c.id AND b.deposit_paid_at IS NOT NULL) AS paid_pence,
       (SELECT COALESCE(SUM(total_pence), 0) FROM invoices i WHERE i.client_id = c.id AND i.status = 'sent') AS owed_pence,
       MAX(c.updated_at,
         COALESCE((SELECT MAX(updated_at) FROM bookings b WHERE b.client_id = c.id), ''),
@@ -56,7 +57,7 @@ app.get('/:id{[0-9]+}', async (c) => {
   const [invoices, bookings] = await db.batch([
     db.prepare(`SELECT id, number, issue_date, due_date, total_pence, status, sent_at, paid_at, viewed_at
       FROM invoices WHERE client_id = ? ORDER BY issue_date DESC, id DESC`).bind(client.id),
-    db.prepare(`SELECT id, status, event_type, event_date, venue_name, price_pence, extras
+    db.prepare(`SELECT id, status, event_type, event_date, venue_name, price_pence, extras, deposit_pence, deposit_paid_at
       FROM bookings WHERE client_id = ? ORDER BY event_date DESC`).bind(client.id),
   ]).then((r) => r.map((x) => x.results));
   const sum = (list) => list.reduce((a, i) => a + i.total_pence, 0);
@@ -66,7 +67,7 @@ app.get('/:id{[0-9]+}', async (c) => {
     invoices: inv,
     bookings,
     stats: {
-      paidPence: sum(inv.filter((i) => i.state === 'paid')),
+      paidPence: sum(inv.filter((i) => i.state === 'paid')) + bookings.reduce((a, b) => a + (b.deposit_paid_at ? b.deposit_pence || 0 : 0), 0),
       owedPence: sum(inv.filter((i) => ['sent', 'viewed', 'overdue'].includes(i.state))),
       overduePence: sum(inv.filter((i) => i.state === 'overdue')),
       gigs: bookings.filter((b) => ['confirmed', 'completed'].includes(b.status)).length,

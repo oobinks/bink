@@ -102,18 +102,56 @@ test('quote: price + extras, then send makes a private link and moves to Quoted'
   assert.match(token, /^[0-9a-f]{32}$/);
 });
 
-test('the client sees the quote without logging in, and can accept it once', async () => {
+test('the client sees the quote with the £100 deposit and balance, and can accept it', async () => {
+  await call('PUT', '/api/settings/bank', { sortCode: '04-00-04', accountNumber: '12345678' });
   const q = await call('GET', `/api/public/quote/${token}`, null, { auth: false });
   assert.equal(q.body.totalPence, 45540);
+  assert.equal(q.body.depositPence, 10000, 'default £100 deposit');
+  assert.equal(q.body.balancePence, 35540);
   assert.equal(q.body.items.length, 3);
   assert.equal(q.body.accepted, false);
+  assert.equal(q.body.bank, null, 'no bank details until accepted');
   assert.equal(q.body.business.phone, '07818543677');
   assert.equal((await call('GET', '/api/public/quote/0123456789abcdef0123456789abcdef', null, { auth: false })).status, 404);
   assert.equal((await call('POST', `/api/public/quote/${token}/accept`, null, { auth: false })).status, 200);
   const b = (await call('GET', `/api/bookings/${id}`)).body;
-  assert.equal(b.status, 'confirmed');
+  assert.equal(b.status, 'quoted', 'not confirmed until the deposit arrives');
   assert.ok(b.quote_accepted_at);
+  const after = (await call('GET', `/api/public/quote/${token}`, null, { auth: false })).body;
+  assert.equal(after.accepted, true);
+  assert.equal(after.confirmed, false);
+  assert.equal(after.bank.sortCode, '04-00-04', 'bank details shown to pay the deposit');
   assert.equal((await call('POST', `/api/public/quote/${token}/accept`, null, { auth: false })).status, 200, 'accepting twice is harmless');
+  const dash = (await call('GET', '/api/dashboard')).body;
+  assert.ok(dash.attention.some((a) => a.kind === 'deposit' && a.detail.includes('Jess Carter')));
+});
+
+test('"Deposit received" confirms the booking and counts as income', async () => {
+  const r = await call('POST', `/api/bookings/${id}/deposit`, { paid: true });
+  assert.equal(r.status, 200);
+  const b = (await call('GET', `/api/bookings/${id}`)).body;
+  assert.equal(b.status, 'confirmed');
+  assert.ok(b.deposit_paid_at);
+  assert.equal((await call('GET', `/api/public/quote/${token}`, null, { auth: false })).body.confirmed, true);
+  const report = (await call('GET', '/api/invoices/report')).body;
+  assert.ok(report.months.at(-1).pence >= 10000, 'deposit counted this month');
+});
+
+test('the invoice takes off the deposit and the balance is due on the night', async () => {
+  const { id: invId } = (await call('POST', `/api/invoices/from-booking/${id}`)).body;
+  const inv = (await call('GET', `/api/invoices/${invId}`)).body;
+  assert.equal(inv.total_pence, 35540);
+  assert.equal(inv.items.at(-1).pence, -10000);
+  assert.match(inv.items.at(-1).description, /^Less deposit paid/);
+  assert.equal(inv.due_date, enquiry.event_date);
+  assert.equal(inv.notes, 'Balance payable on the night.');
+  await call('DELETE', `/api/invoices/${invId}`);
+});
+
+test('the deposit can be changed per quote, but not above the total', async () => {
+  assert.equal((await call('PUT', `/api/bookings/${id}/quote`, { price_pence: 35000, extras: [], deposit_pence: 50000 })).status, 400);
+  const ok = await call('PUT', `/api/bookings/${id}/quote`, { price_pence: 35000, extras: [{ label: 'Speakers, lights & DJ booth', pence: 10000 }, { label: 'Travel (32 miles)', pence: 540 }], deposit_pence: 10000 });
+  assert.equal(ok.body.deposit_pence, 10000);
 });
 
 test('confirming another gig on the same day warns about the clash', async () => {
