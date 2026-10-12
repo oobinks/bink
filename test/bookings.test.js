@@ -109,6 +109,7 @@ test('the client sees the quote with the £100 deposit and balance, and can acce
   assert.equal(q.body.depositPence, 10000, 'default £100 deposit');
   assert.equal(q.body.balancePence, 35540);
   assert.equal(q.body.items.length, 3);
+  assert.deepEqual(q.body.items[0], { label: 'DJ Cost', pence: 35000 }, 'first line is always "DJ Cost"');
   assert.equal(q.body.accepted, false);
   assert.equal(q.body.bank, null, 'no bank details until accepted');
   assert.equal(q.body.business.phone, '07818543677');

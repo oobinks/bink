@@ -81,7 +81,7 @@ app.get('/quote/:token', async (c) => {
   const b = await findQuote(db, c.req.param('token'));
   if (!b) return c.json({ error: 'This quote link is no longer available. Please get in touch.' }, 404);
   const business = await getSetting(db, 'business');
-  const items = [{ label: b.event_type || 'DJ performance', pence: b.price_pence || 0 }, ...JSON.parse(b.extras || '[]')];
+  const items = [{ label: 'DJ Cost', pence: b.price_pence || 0 }, ...JSON.parse(b.extras || '[]')];
   return c.json({
     business: { djName: business.djName, legalName: business.legalName, email: business.email, phone: business.phone, address: business.address },
     vatNote: (await getSetting(db, 'invoicing')).vatNote,

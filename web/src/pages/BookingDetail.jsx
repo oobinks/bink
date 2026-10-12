@@ -137,7 +137,7 @@ function QuoteBuilder({ b, pricing, onSaved }) {
         </div>
       )}
       <div className="field">
-        <label htmlFor="price">Price for {b.event_type || 'the gig'}</label>
+        <label htmlFor="price">DJ Cost</label>
         <input id="price" className="input" inputMode="decimal" placeholder="£" value={price} onChange={(e) => setPrice(e.target.value)} />
       </div>
 
