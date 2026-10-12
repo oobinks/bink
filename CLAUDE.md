@@ -27,9 +27,10 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
 - `worker/`: Cloudflare Worker (Hono). `index.js` routes and nightly job, `db.js` schema and migrations,
   `auth.js` login, `routes/*.js` API endpoints, `backup.js` nightly backups, `sample-data.js` demo data,
   `booking-fields.js` booking validation, `push.js` phone notifications, `invoice-logic.js` invoice rules,
-  `reminders.js` morning payment reminders, `mail.js` Gmail sending.
+  `reminders.js` morning payment reminders, `mail.js` Gmail sending, `clients.js` find-or-create client profiles
+  (bookings and invoices carry a `client_id`; use `linkClient()` when creating them).
 - **Public (no login):** only `routes/public.js` (booking form, quote links with Accept, invoice links, calendar
   feed) and the `/book`, `/q/:token` and `/i/:token` screens. Never expose anything else publicly.
 - `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.
 - `web/src/pdf.js`: branded PDF quotes and invoices, made in the browser.
-- `test/`: Node tests. `app.test.js`, `bookings.test.js`, `invoices.test.js` and `ideas.test.js` run the real Worker on the local simulator.
+- `test/`: Node tests. `app.test.js`, `bookings.test.js`, `invoices.test.js`, `clients.test.js` and `ideas.test.js` run the real Worker on the local simulator.

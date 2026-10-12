@@ -1,6 +1,6 @@
 // Realistic pretend data so you can see the app working before using it for real.
 // Everything here is marked is_sample = 1 and can be removed in one tap in Settings.
-import { now, todayUK, addDays } from './db.js';
+import { now, todayUK, addDays, LINK_CLIENTS_SQL } from './db.js';
 
 const bookings = (d) => [
   // New enquiries
@@ -89,6 +89,8 @@ export async function loadSampleData(db) {
     clip(id['neon-past'], 'sample-neon-5.mp4', 'scheduled', 'That disco edit 🔥', '#disco #essexdj', d(2) + 'T19:00:00'),
     clip(id.copper, 'sample-copper-1.mp4', 'posted', 'Copper Bar 🍸', null, null, d(-12) + 'T19:00:00Z'),
   ]);
+  // Give the sample clients their profiles.
+  await db.batch(LINK_CLIENTS_SQL.map((sql) => db.prepare(sql)));
 }
 
 export async function clearSampleData(db) {
@@ -96,6 +98,9 @@ export async function clearSampleData(db) {
     db.prepare('DELETE FROM clips WHERE is_sample = 1'),
     db.prepare('DELETE FROM invoices WHERE is_sample = 1'),
     db.prepare('DELETE FROM bookings WHERE is_sample = 1'),
+    db.prepare(`DELETE FROM clients WHERE is_sample = 1
+      AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.client_id = clients.id)
+      AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.client_id = clients.id)`),
   ]);
 }
 

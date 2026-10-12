@@ -81,7 +81,7 @@ test('backups save and can be downloaded; export has every table', async () => {
   assert.equal(dl.status, 200);
   assert.ok((await dl.json()).tables.bookings.length > 0);
   const exp = (await call('GET', '/api/settings/export')).body;
-  assert.deepEqual(Object.keys(exp.tables).sort(), ['activity', 'bookings', 'clips', 'invoices']);
+  assert.deepEqual(Object.keys(exp.tables).sort(), ['activity', 'bookings', 'clients', 'clips', 'invoices']);
 });
 
 test('sample data can be removed in one go', async () => {

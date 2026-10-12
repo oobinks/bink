@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, PoundSterling, ChevronRight } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Plus, PoundSterling, ChevronRight, Users } from 'lucide-react';
 import { api } from '../api.js';
 import { money, moneyShort, relativeDay } from '../format.js';
 
@@ -24,21 +24,9 @@ export default function Invoices() {
   const tab = params.get('tab') || 'unpaid';
   const [list, setList] = useState(null);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
 
   useEffect(() => { api('/invoices').then(setList).catch((e) => setError(e.message)); }, []);
-
-  const newInvoice = async () => {
-    const name = prompt("Who's it for? (client name)");
-    if (!name?.trim()) return;
-    try {
-      const { id } = await api('/invoices', { method: 'POST', body: { client_name: name } });
-      navigate(`/invoices/${id}`);
-    } catch (e) {
-      setError(e.message);
-    }
-  };
 
   if (!list) return error ? <div className="msg err">{error}</div> : null;
   const unpaid = list.filter(TABS[0].match);
@@ -50,7 +38,7 @@ export default function Invoices() {
     <>
       <div className="page-head">
         <h1>Invoices</h1>
-        <button className="btn small primary" onClick={newInvoice}><Plus size={16} /> New</button>
+        <Link className="btn small primary" to="/invoices/new"><Plus size={16} /> New</Link>
       </div>
 
       <div className="stats" style={{ gridTemplateColumns: '1fr 1fr' }}>
@@ -60,6 +48,12 @@ export default function Invoices() {
       <Link to="/invoices/money" className="alert" style={{ marginTop: 10 }}>
         <div className="alert-icon green"><PoundSterling size={20} /></div>
         <div className="row-main"><div className="row-title">Money &amp; tax year</div><div className="row-sub">Income by month and tax year, who owes what, export</div></div>
+        <ChevronRight size={18} color="var(--faint)" />
+      </Link>
+
+      <Link to="/clients" className="alert" style={{ marginTop: 8 }}>
+        <div className="alert-icon pink"><Users size={20} /></div>
+        <div className="row-main"><div className="row-title">Clients</div><div className="row-sub">Profiles for everyone you've worked for. Tap one to invoice them again.</div></div>
         <ChevronRight size={18} color="var(--faint)" />
       </Link>
 

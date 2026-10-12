@@ -1,6 +1,6 @@
 // Add an enquiry by hand (e.g. someone rang you), or edit a booking's details.
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { api } from '../api.js';
 import { fromPence, toPence } from '../format.js';
@@ -15,9 +15,16 @@ export default function BookingEdit() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const [params] = useSearchParams();
+  const fromClient = params.get('client');
   useEffect(() => {
+    if (!id && fromClient) {
+      api(`/clients/${fromClient}`).then((c) => setV((o) => ({
+        ...o, client_name: c.name, client_email: c.email || '', client_phone: c.phone || '', instagram: c.instagram || '',
+      }))).catch(() => {});
+    }
     if (id) api(`/bookings/${id}`).then((b) => setV({ ...Object.fromEntries(FIELDS.map((k) => [k, b[k] ?? ''])), budget: fromPence(b.budget_pence) }));
-  }, [id]);
+  }, [id, fromClient]);
 
   const set = (k) => (e) => setV((o) => ({ ...o, [k]: e.target.value }));
   const field = (k, label, props = {}) => (

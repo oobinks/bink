@@ -4,6 +4,24 @@
 // Money is always stored in pence (whole numbers) to avoid rounding errors.
 import { loadSampleData } from './sample-data.js';
 
+// Creates client profiles for any bookings/invoices not yet linked to one (matched by name),
+// then links them. Used when profiles were first added, and after loading sample data.
+export const LINK_CLIENTS_SQL = [
+  `INSERT INTO clients (name, email, phone, address, instagram, is_sample, created_at, updated_at)
+    SELECT name, MAX(email), MAX(phone), MAX(address), MAX(instagram), MIN(is_sample), MIN(created_at), MAX(created_at) FROM (
+      SELECT trim(client_name) AS name, client_email AS email, client_phone AS phone, NULL AS address, instagram, is_sample, created_at
+        FROM bookings WHERE client_id IS NULL
+      UNION ALL
+      SELECT trim(client_name), client_email, NULL, client_address, NULL, is_sample, created_at FROM invoices WHERE client_id IS NULL
+    ) AS src
+    WHERE NOT EXISTS (SELECT 1 FROM clients c WHERE lower(c.name) = lower(src.name))
+    GROUP BY lower(name)`,
+  `UPDATE bookings SET client_id = (SELECT id FROM clients c WHERE lower(c.name) = lower(trim(bookings.client_name)) ORDER BY id LIMIT 1)
+    WHERE client_id IS NULL`,
+  `UPDATE invoices SET client_id = (SELECT id FROM clients c WHERE lower(c.name) = lower(trim(invoices.client_name)) ORDER BY id LIMIT 1)
+    WHERE client_id IS NULL`,
+];
+
 const migrations = [
   [
     `CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
@@ -123,6 +141,26 @@ const migrations = [
       at TEXT NOT NULL,
       PRIMARY KEY (invoice_id, step)
     )`,
+  ],
+  [
+    // Client profiles. Bookings and invoices point at a client; existing ones are linked up by name.
+    `CREATE TABLE clients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT,
+      phone TEXT,
+      address TEXT,
+      instagram TEXT,
+      notes TEXT,
+      is_sample INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`,
+    `CREATE INDEX clients_name ON clients(lower(name))`,
+    `CREATE INDEX clients_email ON clients(lower(email))`,
+    `ALTER TABLE bookings ADD COLUMN client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL`,
+    `ALTER TABLE invoices ADD COLUMN client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL`,
+    ...LINK_CLIENTS_SQL,
   ],
 ];
 

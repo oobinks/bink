@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { now, logActivity, all } from '../db.js';
 import { STATUSES, cleanBooking, cleanExtras, quoteTotal } from '../booking-fields.js';
 import { getSetting } from '../settings.js';
+import { linkClient } from '../clients.js';
 
 const app = new Hono();
 
@@ -52,6 +53,7 @@ app.post('/', async (c) => {
   } catch (err) {
     return c.json({ error: err.message }, 400);
   }
+  b.client_id = await linkClient(db, { name: b.client_name, email: b.client_email, phone: b.client_phone, instagram: b.instagram });
   const ts = now();
   const cols = Object.keys(b);
   const res = await db.prepare(`INSERT INTO bookings (${cols.join(', ')}, status, source, seen_at, created_at, updated_at)

@@ -342,3 +342,14 @@ details.step summary { display: flex; align-items: center; gap: 10px; min-height
 details.step summary::-webkit-details-marker { display: none; }
 details.step[open] { padding-bottom: 4px; }
 .kv .row-amount { white-space: nowrap; word-break: normal; flex-shrink: 0; }
+
+/* ---------- Clients ---------- */
+.search { position: relative; margin-bottom: 12px; }
+.search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--faint); }
+.search .input { padding-left: 42px; }
+.row-btn { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.row-btn:last-child { border-bottom: 0; }
+.row-btn:active { background: var(--surface-2); }
+.avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-weight: 800; font-size: 14px;
+  color: #1a1408; background: linear-gradient(135deg, var(--gold), var(--pink)); }
+.client-link { display: inline-flex; align-items: center; gap: 6px; color: var(--gold); font-size: 14px; font-weight: 650; }

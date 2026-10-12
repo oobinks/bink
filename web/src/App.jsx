@@ -16,6 +16,8 @@ import BookingEdit from './pages/BookingEdit.jsx';
 import Invoices from './pages/Invoices.jsx';
 import InvoiceDetail from './pages/InvoiceDetail.jsx';
 import Money from './pages/Money.jsx';
+import Clients, { InvoiceNew } from './pages/Clients.jsx';
+import ClientDetail from './pages/ClientDetail.jsx';
 
 function Gate({ title, children }) {
   return (
@@ -101,6 +103,9 @@ export default function App() {
         <Route path="bookings/:id/edit" element={<BookingEdit />} />
         <Route path="invoices" element={<Invoices />} />
         <Route path="invoices/money" element={<Money />} />
+        <Route path="invoices/new" element={<InvoiceNew />} />
+        <Route path="clients" element={<Clients />} />
+        <Route path="clients/:id" element={<ClientDetail />} />
         <Route path="invoices/:id" element={<InvoiceDetail />} />
         <Route path="press/*" element={<ComingSoon icon={Newspaper} tone="violet" title="Press pack" phase={4}
           text="Photos, videos, bio and rider, published to a public press pack page that updates itself." />} />

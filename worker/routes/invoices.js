@@ -3,6 +3,7 @@ import { now, todayUK, addDays, logActivity, all } from '../db.js';
 import { getSetting, setSetting } from '../settings.js';
 import { invoiceState, formatNumber, taxYear, templateVars, fill } from '../invoice-logic.js';
 import { emailReady, sendMail } from '../mail.js';
+import { linkClient } from '../clients.js';
 
 const app = new Hono();
 const randomToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -32,15 +33,17 @@ async function takeNumber(db) {
   return formatNumber(cfg.numberPrefix, n);
 }
 
-async function createInvoice(db, fields) {
+export async function createInvoice(db, fields) {
   const cfg = await getSetting(db, 'invoicing');
   const issue = todayUK();
   const items = cleanItems(fields.items);
+  const clientId = fields.client_id
+    ?? await linkClient(db, { name: fields.client_name, email: fields.client_email, address: fields.client_address });
   const number = await takeNumber(db);
   const ts = now();
-  const res = await db.prepare(`INSERT INTO invoices (number, booking_id, client_name, client_email, client_address, issue_date,
-    due_date, items, total_pence, status, notes, token, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?)`)
-    .bind(number, fields.booking_id ?? null, fields.client_name, fields.client_email || null, fields.client_address || null,
+  const res = await db.prepare(`INSERT INTO invoices (number, booking_id, client_id, client_name, client_email, client_address, issue_date,
+    due_date, items, total_pence, status, notes, token, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?)`)
+    .bind(number, fields.booking_id ?? null, clientId, fields.client_name, fields.client_email || null, fields.client_address || null,
       issue, addDays(issue, cfg.paymentTermsDays), JSON.stringify(items), items.reduce((a, i) => a + i.pence, 0),
       fields.notes || null, randomToken(), ts, ts).run();
   await logActivity(db, `Invoice ${number} created`, fields.client_name);
@@ -49,7 +52,7 @@ async function createInvoice(db, fields) {
 
 app.get('/', async (c) => {
   const today = todayUK();
-  const rows = await all(c.env.DB.prepare(`SELECT id, number, booking_id, client_name, issue_date, due_date, total_pence, status,
+  const rows = await all(c.env.DB.prepare(`SELECT id, number, booking_id, client_id, client_name, issue_date, due_date, total_pence, status,
     sent_at, paid_at, viewed_at, chasing_paused FROM invoices ORDER BY (status = 'paid'), due_date DESC, id DESC LIMIT 500`));
   return c.json(rows.map((r) => ({ ...r, state: invoiceState(r, today) })));
 });
@@ -139,8 +142,10 @@ app.post('/from-booking/:bookingId{[0-9]+}', async (c) => {
     { description: `DJ performance: ${what}`, pence: b.price_pence || 0 },
     ...JSON.parse(b.extras || '[]').map((e) => ({ description: e.label, pence: e.pence })),
   ];
+  const client = b.client_id ? await db.prepare('SELECT address FROM clients WHERE id = ?').bind(b.client_id).first() : null;
   const id = await createInvoice(db, {
-    booking_id: b.id, client_name: b.client_name, client_email: b.client_email, items,
+    booking_id: b.id, client_id: b.client_id ?? undefined, client_name: b.client_name, client_email: b.client_email,
+    client_address: client?.address, items,
   });
   return c.json({ id });
 });

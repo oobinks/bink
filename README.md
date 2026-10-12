@@ -138,6 +138,12 @@ You'll see **Viewed** once the client has opened it. Reminders go out each morni
 on the due date, then 7 and 14 days overdue). You can change the timing and wording in
 **Settings → Emails & reminders**, or pause reminders for any single invoice.
 
+**How do client profiles work?**
+Everyone you quote, play for or invoice gets a profile automatically, matched by email or name. Open one from
+**Invoices → Clients** (or **More → Clients**) to see their gigs, invoices, what they've paid and what they owe.
+Tap **New invoice** on a profile to invoice a repeat client in one tap: their details and the lines from their last
+invoice are filled in for you. **Invoices → New** starts by picking the client.
+
 **Where are my totals for tax?**
 **Invoices → Money & tax year** shows income by month and by UK tax year (6 April to 5 April), and who owes what.
 **Download spreadsheet** gives you every invoice in a CSV file.

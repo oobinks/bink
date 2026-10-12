@@ -9,6 +9,7 @@ import { cleanBooking, quoteTotal } from '../booking-fields.js';
 import { notify } from '../push.js';
 import { shortDate } from '../format.js';
 import { identify } from '../auth.js';
+import { linkClient } from '../clients.js';
 import { invoiceState } from '../invoice-logic.js';
 
 const app = new Hono();
@@ -44,6 +45,7 @@ app.post('/enquiry', async (c) => {
   if (b.event_date < todayUK()) return c.json({ error: 'The date of your event is in the past' }, 400);
 
   const db = c.env.DB;
+  b.client_id = await linkClient(db, { name: b.client_name, email: b.client_email, phone: b.client_phone, instagram: b.instagram });
   const ts = now();
   const cols = Object.keys(b);
   const res = await db.prepare(`INSERT INTO bookings (${cols.join(', ')}, status, source, raw_form, created_at, updated_at)

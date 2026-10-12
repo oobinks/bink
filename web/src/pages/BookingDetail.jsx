@@ -17,7 +17,7 @@ function Fact({ label, children }) {
   return <div className="kv"><span>{label}</span><span>{children}</span></div>;
 }
 
-function ContactButtons({ b }) {
+export function ContactButtons({ b }) {
   const pref = b.contact_method;
   const digits = (b.client_phone || '').replace(/[^\d+]/g, '');
   const ig = b.instagram?.replace(/^@/, '');
@@ -246,6 +246,7 @@ export default function BookingDetail() {
       )}
 
       <ContactButtons b={b} />
+      {b.client_id && <Link to={`/clients/${b.client_id}`} className="client-link" style={{ marginTop: 10 }}>View client profile →</Link>}
 
       <div className="card" style={{ marginTop: 12 }}>
         <h3 style={{ marginBottom: 8 }}>{b.event_type || 'Event'}</h3>

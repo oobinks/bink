@@ -11,6 +11,7 @@ import settings from './routes/settings.js';
 import ideas from './routes/ideas.js';
 import bookings from './routes/bookings.js';
 import invoices from './routes/invoices.js';
+import clients from './routes/clients.js';
 import { runReminders } from './reminders.js';
 import { emailReady } from './mail.js';
 import publicRoutes, { calendarFeed, calendarToken } from './routes/public.js';
@@ -54,6 +55,7 @@ app.route('/api/settings', settings);
 app.route('/api/ideas', ideas);
 app.route('/api/bookings', bookings);
 app.route('/api/invoices', invoices);
+app.route('/api/clients', clients);
 app.get('/api/email-status', (c) => c.json({ ready: emailReady(c.env) }));
 
 // Phone notifications.

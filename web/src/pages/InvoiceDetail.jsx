@@ -220,7 +220,10 @@ export default function InvoiceDetail() {
             {inv.items.map((i, n) => <div className="kv" key={n}><span>{i.description}</span><span className="row-amount">{money(i.pence)}</span></div>)}
             <div className="kv"><span>Invoice date</span><span>{longDate(inv.issue_date)}</span></div>
             {inv.client_email && <div className="kv"><span>Client email</span><span>{inv.client_email}</span></div>}
-            {inv.booking && <Link className="hint view-link" to={`/bookings/${inv.booking.id}`}>View the booking</Link>}
+            <div className="btn-row" style={{ gap: 16 }}>
+              {inv.client_id && <Link className="hint view-link" to={`/clients/${inv.client_id}`}>Client profile</Link>}
+              {inv.booking && <Link className="hint view-link" to={`/bookings/${inv.booking.id}`}>View the booking</Link>}
+            </div>
           </div>
 
           {inv.state !== 'draft' && inv.state !== 'paid' && (

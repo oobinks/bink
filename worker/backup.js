@@ -7,7 +7,7 @@
 import { now, logActivity } from './db.js';
 import { getSetting, setSetting } from './settings.js';
 
-export const EXPORT_TABLES = ['bookings', 'invoices', 'clips', 'activity'];
+export const EXPORT_TABLES = ['clients', 'bookings', 'invoices', 'clips', 'activity'];
 const KEEP = 30;
 
 export async function snapshot(db) {
