@@ -14,9 +14,11 @@
   // The database and backup storage are created automatically on first deploy.
   "d1_databases": [{ "binding": "DB", "database_name": "ctrinn-hq" }],
   "kv_namespaces": [{ "binding": "BACKUPS" }],
+  // Clip and photo storage (free up to 10GB; the app stops uploads before that).
+  "r2_buckets": [{ "binding": "CLIPS", "bucket_name": "ctrinn-clips" }],
   // 02:00 UTC nightly jobs (backup, completing past gigs); 09:00 UTC payment reminders
-  // (9am in winter, 10am in summer, UK time).
-  "triggers": { "crons": ["0 2 * * *", "0 9 * * *"] },
+  // (9am in winter, 10am in summer, UK time); every hour on the hour: "time to post" clip reminders.
+  "triggers": { "crons": ["0 2 * * *", "0 9 * * *", "0 * * * *"] },
   // The GitHub repo "Improve the app" talks to, and the Gmail invoices and reminders are sent from.
   "vars": { "GITHUB_REPO": "oobinks/bink", "GMAIL_ADDRESS": "ctrinn.music@gmail.com" },
   // Keep the variables you set in the Cloudflare dashboard (ACCESS_TEAM_DOMAIN, OWNER_EMAILS).

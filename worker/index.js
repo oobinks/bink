@@ -1,7 +1,7 @@
 // The app's server, running on Cloudflare Workers.
 // - /api/*  : your data (locked behind Cloudflare Access, see auth.js)
 // - anything else: the app's screens, served by Cloudflare from dist/
-// - scheduled(): background jobs (nightly backup; later invoice chasing and clip reminders)
+// - scheduled(): background jobs (nightly backup, morning payment reminders, hourly clip reminders)
 import { Hono } from 'hono';
 import { ensureSchema } from './db.js';
 import { requireAuth, authRoutes } from './auth.js';
@@ -13,6 +13,8 @@ import bookings from './routes/bookings.js';
 import invoices from './routes/invoices.js';
 import clients from './routes/clients.js';
 import afterGig, { afterGigNudges } from './routes/after-gig.js';
+import clips, { cleanStaleUploads } from './routes/clips.js';
+import { clipReminders } from './content.js';
 import { runReminders } from './reminders.js';
 import { emailReady, senderAddress } from './mail.js';
 import publicRoutes, { calendarFeed, calendarToken } from './routes/public.js';
@@ -58,6 +60,7 @@ app.route('/api/bookings', bookings);
 app.route('/api/invoices', invoices);
 app.route('/api/clients', clients);
 app.route('/api/after-gig', afterGig);
+app.route('/api/clips', clips);
 app.get('/api/email-status', async (c) => c.json({ ready: emailReady(c.env), from: await senderAddress(c.env) }));
 
 // Phone notifications.
@@ -92,6 +95,11 @@ export default {
   fetch: app.fetch,
   async scheduled(event, env, ctx) {
     await ensureSchema(env.DB);
+    if (event.cron === '0 * * * *') {
+      // Every hour: "time to post" reminders for scheduled clips.
+      ctx.waitUntil(clipReminders(env));
+      return;
+    }
     if (event.cron === '0 9 * * *') {
       // Morning: payment reminders. Links in emails need the app's address, saved on each visit.
       const site = await getSetting(env.DB, 'site');
@@ -103,6 +111,7 @@ export default {
       const done = await env.DB.prepare(`UPDATE bookings SET status = 'completed', updated_at = ?
         WHERE status = 'confirmed' AND event_date < ?`).bind(now(), todayUK()).run();
       if (done.meta.changes) await logActivity(env.DB, 'Past gigs marked completed', `${done.meta.changes} gig(s)`);
+      await cleanStaleUploads(env);
       await runBackup(env);
     })());
   },

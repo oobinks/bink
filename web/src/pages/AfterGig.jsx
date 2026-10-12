@@ -80,8 +80,8 @@ export default function AfterGig() {
 
       <div className="card step-card">
         <div className="step-head"><span className="step-num">2</span><h3>Clips</h3></div>
-        <p className="lead">Upload last night's videos, star the best and schedule them for Instagram and TikTok.</p>
-        <button className="btn block" disabled><Clapperboard size={18} /> Upload clips (coming in the next update)</button>
+        <p className="lead">Upload last night's videos and photos, star the best, and get reminded to post them.</p>
+        <Link className="btn block" to={`/content/upload?gig=${b.id}`}><Clapperboard size={18} /> Upload clips</Link>
       </div>
 
       <div className="card step-card">

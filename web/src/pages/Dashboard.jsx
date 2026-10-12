@@ -151,11 +151,11 @@ export default function Dashboard() {
       </div>
 
       <div className="section">
-        <div className="section-head"><h2>Clips</h2><Link to="/content">Content hub</Link></div>
+        <div className="section-head"><h2>Clips</h2><Link to="/content/upload">Upload</Link></div>
         <Link to="/content" className="alert">
           <div className="alert-icon violet"><Clapperboard size={20} /></div>
           <div className="row-main">
-            <div className="row-title">{clips.unscheduled} waiting to be scheduled</div>
+            <div className="row-title">{clips.toReview ? `${clips.toReview} new to star or bin` : `${clips.unscheduled} starred, waiting to be scheduled`}</div>
             <div className="row-sub">{clips.scheduled} scheduled to post</div>
           </div>
         </Link>

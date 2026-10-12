@@ -176,6 +176,15 @@ const migrations = [
     `ALTER TABLE bookings ADD COLUMN wrapped_at TEXT`,
     `ALTER TABLE bookings ADD COLUMN gig_notes TEXT`,
   ],
+  [
+    // Content hub: clip files live in Cloudflare storage. Status now also has 'uploading' and 'new' (not reviewed yet).
+    `ALTER TABLE clips ADD COLUMN r2_key TEXT`,
+    `ALTER TABLE clips ADD COLUMN upload_id TEXT`,
+    `ALTER TABLE clips ADD COLUMN size_bytes INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE clips ADD COLUMN content_type TEXT`,
+    `ALTER TABLE clips ADD COLUMN reminded_at TEXT`,
+    `CREATE INDEX clips_booking ON clips(booking_id)`,
+  ],
 ];
 
 let ready = false;
@@ -208,6 +217,13 @@ export const now = () => new Date().toISOString();
 export function todayUK(offsetDays = 0) {
   const d = new Date(Date.now() + offsetDays * 86400000);
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(d);
+}
+
+// The time right now in the UK, as YYYY-MM-DDTHH:MM (how clip post times are stored).
+export function nowUK(date = new Date()) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
 export function addDays(isoDate, days) {

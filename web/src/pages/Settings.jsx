@@ -11,6 +11,7 @@ const TABS = [
   { id: 'pricing', label: 'Prices' },
   { id: 'form', label: 'Booking form' },
   { id: 'email', label: 'Emails & reminders' },
+  { id: 'content', label: 'Clips & captions' },
   { id: 'phone', label: 'Phone & calendar' },
   { id: 'bank', label: 'Bank details' },
   { id: 'invoicing', label: 'Invoicing' },
@@ -500,6 +501,22 @@ export default function Settings() {
         </SectionForm>
       )}
 
+      {tab === 'content' && (
+        <SectionForm section="content" initial={settings.content} title="Clips & captions"
+          lead="Used for new clips' draft captions, and for “Schedule all, one a day”.">
+          {(v, set) => (
+            <>
+              <Field label="Post time" type="time" step="3600" value={v.postTime} onChange={set('postTime')}
+                hint="Reminders go out on the hour." />
+              <Field label="Hashtags" type="textarea" value={v.hashtags} onChange={set('hashtags')}
+                hint="Added under every caption. You can change them on each clip." />
+              <Field label="Caption ideas (one per line)" type="textarea" rows={8} value={v.captions.join('\n')}
+                onChange={(t) => set('captions')(t.split('\n'))}
+                hint="{venue}, {event} and {night} (e.g. “Saturday night”) are filled in from the gig." />
+            </>
+          )}
+        </SectionForm>
+      )}
       {tab === 'pricing' && <PricingTab settings={settings} reload={reload} />}
       {tab === 'form' && <FormTab settings={settings} reload={reload} />}
       {tab === 'phone' && <PhoneTab />}

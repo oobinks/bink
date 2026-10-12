@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Clapperboard, Newspaper } from 'lucide-react';
+import { Newspaper } from 'lucide-react';
 import { api } from './api.js';
 import Layout from './components/Layout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -19,6 +19,7 @@ import Money from './pages/Money.jsx';
 import Clients, { InvoiceNew } from './pages/Clients.jsx';
 import ClientDetail from './pages/ClientDetail.jsx';
 import AfterGig from './pages/AfterGig.jsx';
+import Content from './pages/Content.jsx';
 
 function Gate({ title, children }) {
   return (
@@ -111,8 +112,7 @@ export default function App() {
         <Route path="invoices/:id" element={<InvoiceDetail />} />
         <Route path="press/*" element={<ComingSoon icon={Newspaper} tone="violet" title="Press pack" phase={4}
           text="Photos, videos, bio and rider, published to a public press pack page that updates itself." />} />
-        <Route path="content/*" element={<ComingSoon icon={Clapperboard} tone="violet" title="Content hub" phase={5}
-          text="Upload your clips after a gig, star the best, add captions and schedule them for Instagram and TikTok." />} />
+        <Route path="content/*" element={<Content />} />
         <Route path="more" element={<More />} />
         <Route path="settings" element={<Settings />} />
         <Route path="ideas" element={<Ideas />} />

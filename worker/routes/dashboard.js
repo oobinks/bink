@@ -29,6 +29,7 @@ app.get('/', async (c) => {
       WHERE b.status IN ('confirmed', 'completed') AND b.event_date < ?
         AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.booking_id = b.id) ORDER BY b.event_date`).bind(today),
     db.prepare(`SELECT COALESCE(SUM(status = 'starred'), 0) AS unscheduled, COALESCE(SUM(status = 'scheduled'), 0) AS scheduled,
+      COALESCE(SUM(status = 'new'), 0) AS toReview,
       COALESCE(SUM(status = 'scheduled' AND substr(scheduled_at, 1, 10) = ?), 0) AS today FROM clips`).bind(today),
     db.prepare(`SELECT
       (SELECT COUNT(*) FROM bookings WHERE status = 'confirmed' AND event_date BETWEEN ?1 AND ?2) AS gigsNext30,
@@ -87,6 +88,10 @@ app.get('/', async (c) => {
     attention.push({ kind: 'clips', tone: 'violet', title: `${plural(clips.today, 'clip', 'clips')} to post today`,
       detail: 'You will get a reminder at each posting time', link: '/content' });
   }
+  if (clips.toReview) {
+    attention.push({ kind: 'clips', tone: 'violet', title: `${plural(clips.toReview, 'new clip', 'new clips')} to star or bin`,
+      detail: 'Keep the best, bin the rest', link: '/content/review' });
+  }
   if (clips.unscheduled) {
     attention.push({ kind: 'clips', tone: 'muted', title: `${plural(clips.unscheduled, 'starred clip', 'starred clips')} not scheduled`,
       detail: 'Tap to spread them across the coming week', link: '/content' });
@@ -104,7 +109,7 @@ app.get('/', async (c) => {
     upcomingGigs,
     newEnquiries,
     unpaid,
-    clips: { unscheduled: clips.unscheduled, scheduled: clips.scheduled },
+    clips: { unscheduled: clips.unscheduled, scheduled: clips.scheduled, toReview: clips.toReview },
   });
 });
 

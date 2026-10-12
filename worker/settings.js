@@ -61,6 +61,21 @@ export const DEFAULT_SETTINGS = {
         body: 'Hi {first_name},\n\nInvoice {number} for {amount} is now two weeks overdue (it was due on {due_date}). Please could you let me know when I can expect payment?\n\n{link}\n\nThanks,\n{dj_name}' },
     ],
   },
+  // Content hub: draft captions and when clips get scheduled.
+  content: {
+    postTime: '19:00',
+    hashtags: '#housemusic #funkyhouse #disco #essexdj #djlife',
+    // {venue}, {event} and {night} (e.g. "Saturday night") are filled in from the gig.
+    captions: [
+      '{night} at {venue} 🪩',
+      'This is what {night}s are made for 🔥',
+      '{event} vibes at {venue} ✨',
+      'Still thinking about this one 🎧 {venue}',
+      'Feel good house, all night long 🕺',
+      'When the drop hits just right 🙌',
+      'Thank you {venue}, what a night 🖤',
+    ],
+  },
   backups: {
     lastBackupAt: null,
     lastBackupError: null,
@@ -123,6 +138,9 @@ export function cleanSection(section, input, current) {
         if (!subject || !body) throw new Error('Each reminder needs a subject and a message');
         return { days, on: Boolean(st?.on), subject, body };
       });
+    } else if (section === 'content' && k === 'postTime') {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v))) throw new Error('Post time must look like 19:00');
+      out[k] = String(v);
     } else if (Array.isArray(def)) {
       if (!Array.isArray(v)) throw new Error(`${k} must be a list`);
       out[k] = v.map((x) => String(x).trim()).filter(Boolean).slice(0, 50);

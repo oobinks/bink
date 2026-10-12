@@ -8,10 +8,10 @@ It's hosted free on Cloudflare, works on any device, and only you can log in.
 - Phase 2: booking form, enquiries, quotes, calendar
 - Phase 3: invoices, payment reminders, money and tax-year reports
 - the "Improve the app" chat
-
 - Phase 4: the after-gig screen
+- Phase 5: clips (the content hub)
 
-Next: clips (the content hub), then the press pack.
+Next: the press pack.
 
 ---
 
@@ -146,10 +146,23 @@ on the due date, then 7 and 14 days overdue). You can change the timing and word
 The morning after, your phone pings you ("How was Neon Rooms?") and the home screen shows a card. Tap it for one screen:
 1. **Get paid:** tap **Balance paid on the night** (this makes the invoice, takes off the deposit and marks it paid
    that night), or **send the invoice** if they still owe you.
-2. **Clips:** upload the night's videos (coming with the content hub).
+2. **Clips:** upload the night's videos and photos.
 3. **Notes for next time:** private notes, kept on the booking and the client's profile.
 
 Then tap **Done**.
+
+**How do clips work?**
+1. **Upload:** after a gig, tap **Content → Upload** (or **Upload clips** on the after-gig screen), pick the gig, then
+   choose as many videos and photos as you like. Keep the screen open while they upload.
+2. **Star or bin:** one clip at a time. Binned clips are deleted for good (you get 5 seconds to undo).
+3. **Schedule:** **Schedule all, one a day** spreads your starred clips over the coming days at your post time
+   (Settings → Clips & captions). Each clip gets a draft caption and hashtags, which you can edit, or tap **Another idea**.
+4. **Post:** at each time your phone buzzes. Tap it, tap **Share**, pick TikTok or Instagram, paste the caption
+   (it's already copied) and post. Then tap **Posted**.
+
+The app can't post to TikTok for you: TikTok only allows that for apps it has reviewed and approved.
+Clips are stored in Cloudflare's storage, free up to 10GB. The app stops uploads just before that, so it never costs anything.
+Bin old clips to free up space.
 
 **How do client profiles work?**
 Everyone you quote, play for or invoice gets a profile automatically, matched by email or name. Open one from

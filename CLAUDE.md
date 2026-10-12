@@ -30,9 +30,12 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
   `reminders.js` morning payment reminders, `mail.js` Gmail sending, `clients.js` find-or-create client profiles
   (bookings and invoices carry a `client_id`; use `linkClient()` when creating them), `form-fields.js` the
   editable booking form (core questions map to booking columns; custom answers go in `bookings.answers`),
-  `routes/after-gig.js` the morning-after wrap-up (`wrapped_at`, `gig_notes`, balance paid on the night).
+  `routes/after-gig.js` the morning-after wrap-up (`wrapped_at`, `gig_notes`, balance paid on the night),
+  `routes/clips.js` + `content.js` the content hub (clip files in the R2 bucket `CLIPS`, uploaded in 20MB pieces through
+  the Worker; statuses uploading → new → starred → scheduled → posted; hourly `0 * * * *` cron sends "time to post" pushes;
+  uploads stop at 9.5GB to stay on R2's free 10GB). No auto-posting: TikTok needs an app audit, so it's share-sheet only.
 - **Public (no login):** only `routes/public.js` (booking form, quote links with Accept, invoice links, calendar
   feed) and the `/book`, `/q/:token` and `/i/:token` screens. Never expose anything else publicly.
 - `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.
 - `web/src/pdf.js`: branded PDF quotes and invoices, made in the browser.
-- `test/`: Node tests. `app.test.js`, `bookings.test.js`, `invoices.test.js`, `clients.test.js`, `after-gig.test.js` and `ideas.test.js` run the real Worker on the local simulator.
+- `test/`: Node tests. `app.test.js`, `bookings.test.js`, `invoices.test.js`, `clients.test.js`, `after-gig.test.js`, `clips.test.js` and `ideas.test.js` run the real Worker on the local simulator.
