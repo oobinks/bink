@@ -35,7 +35,8 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
   the Worker; statuses uploading → new → starred → scheduled → posted; hourly `0 * * * *` cron sends "time to post" pushes;
   uploads stop at 9.5GB to stay on R2's free 10GB). No auto-posting: TikTok needs an app audit, so it's share-sheet only.
 - **Public (no login):** only `routes/public.js` (booking form, quote links with Accept, invoice links, calendar
-  feed) and the `/book`, `/q/:token` and `/i/:token` screens. Never expose anything else publicly.
+  feed, press pack) and the `/book`, `/q/:token`, `/i/:token` and `/epk` screens. Never expose anything else publicly.
+  The press pack (`/epk`) is off until `press.live` is on, and only shows clips with `in_press = 1`; the phone number only if `press.showPhone`.
 - `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.
 - `web/src/pdf.js`: branded PDF quotes and invoices, made in the browser.
 - `test/`: Node tests. `app.test.js`, `bookings.test.js`, `invoices.test.js`, `clients.test.js`, `after-gig.test.js`, `clips.test.js` and `ideas.test.js` run the real Worker on the local simulator.

@@ -17,10 +17,10 @@ async function sendPiece(id, n, blob) {
   }
 }
 
-export async function uploadClip(file, bookingId, onProgress) {
+export async function uploadClip(file, bookingId, onProgress, { press = false } = {}) {
   const { id } = await api('/clips/upload', {
     method: 'POST',
-    body: { booking_id: bookingId || null, file_name: file.name, content_type: file.type, size: file.size },
+    body: { booking_id: bookingId || null, file_name: file.name, content_type: file.type, size: file.size, press },
   });
   const parts = [];
   for (let start = 0, n = 1; start < file.size; start += PIECE, n++) {

@@ -77,6 +77,20 @@ export const DEFAULT_SETTINGS = {
       'Thank you {venue}, what a night 🖤',
     ],
   },
+  // Press pack: the public page for promoters (/epk). Off until you switch it on.
+  press: {
+    live: false,
+    tagline: 'House and disco DJ from Essex',
+    bio: '',
+    playedAt: [],
+    instagram: '',
+    tiktok: '',
+    soundcloud: '',
+    mixcloud: '',
+    youtube: '',
+    rider: '',
+    showPhone: false,
+  },
   backups: {
     lastBackupAt: null,
     lastBackupError: null,
@@ -152,7 +166,7 @@ export function cleanSection(section, input, current) {
     } else if (typeof def === 'boolean') {
       out[k] = Boolean(v);
     } else {
-      out[k] = String(v ?? '').trim().slice(0, section === 'emails' ? 4000 : 1000);
+      out[k] = String(v ?? '').trim().slice(0, section === 'emails' || section === 'press' ? 4000 : 1000);
     }
   }
   return out;

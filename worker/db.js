@@ -185,6 +185,11 @@ const migrations = [
     `ALTER TABLE clips ADD COLUMN reminded_at TEXT`,
     `CREATE INDEX clips_booking ON clips(booking_id)`,
   ],
+  [
+    // Press pack: which clips and photos are on it, and in what order. Status 'library' = kept for the press pack only.
+    `ALTER TABLE clips ADD COLUMN in_press INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE clips ADD COLUMN press_order INTEGER NOT NULL DEFAULT 0`,
+  ],
 ];
 
 let ready = false;

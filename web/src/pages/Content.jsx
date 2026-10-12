@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Routes, Route, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  ArrowLeft, Upload, Star, Trash2, Clapperboard, CalendarClock, Check, Share2, Copy, Download, Sparkles, Image as ImageIcon, Undo2,
+  ArrowLeft, Upload, Star, Trash2, Clapperboard, CalendarClock, Check, Share2, Copy, Download, Sparkles, Image as ImageIcon, Undo2, Newspaper,
 } from 'lucide-react';
 import { api } from '../api.js';
 import { shortDate } from '../format.js';
@@ -398,11 +398,11 @@ function ClipDetail() {
     navigate('/content');
   };
   const remove = async () => {
-    if (!confirm('Bin this clip? The file is deleted for good.')) return;
+    if (!confirm(`Bin this clip? The file is deleted for good${clip.in_press ? ' and comes off your press pack' : ''}.`)) return;
     await api(`/clips/${clip.id}`, { method: 'DELETE' });
     navigate('/content', { replace: true });
   };
-  const statusPill = { new: ['violet', 'To review'], starred: ['gold', 'Starred'], scheduled: ['pink', 'Scheduled'], posted: ['green', 'Posted'] }[clip.status];
+  const statusPill = { new: ['violet', 'To review'], starred: ['gold', 'Starred'], scheduled: ['pink', 'Scheduled'], posted: ['green', 'Posted'], library: ['muted', 'Press pack'] }[clip.status];
 
   return (
     <>
@@ -449,6 +449,11 @@ function ClipDetail() {
       <div className="btn-row" style={{ marginTop: 14 }}>
         {clip.status === 'new' && <button className="btn" onClick={() => save({ status: 'starred' })}><Star size={16} /> Star</button>}
         {clip.has_file && <a className="btn" href={`${fileUrl(clip.id)}?download=1`}><Download size={16} /> Save to phone</a>}
+        {clip.has_file && (
+          <button className="btn" onClick={() => save({ in_press: !clip.in_press })}>
+            <Newspaper size={16} /> {clip.in_press ? 'On press pack ✓' : 'Add to press pack'}
+          </button>
+        )}
         <button className="btn danger" onClick={remove}><Trash2 size={16} /> Bin</button>
       </div>
       {error && <div className="msg err">{error}</div>}

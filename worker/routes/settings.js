@@ -9,7 +9,8 @@ const app = new Hono();
 
 const LABELS = {
   business: 'Your details', bank: 'Bank details', invoicing: 'Invoicing settings',
-  pricing: 'Prices', bookingForm: 'Booking form text',
+  pricing: 'Prices', bookingForm: 'Booking form text', emails: 'Email wording', content: 'Clips & captions',
+  press: 'Press pack',
 };
 
 app.get('/', async (c) => {

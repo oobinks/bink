@@ -63,3 +63,25 @@ export async function clipReminders(env, current = nowUK()) {
 }
 
 export const contentSettings = (db) => getSetting(db, 'content');
+
+// Sends a stored clip or photo, with seeking (Range) so videos play on phones. Used by the app and the public press pack.
+export async function serveClipFile(c, clip) {
+  const obj = await c.env.CLIPS.get(clip.r2_key, { range: c.req.raw.headers });
+  if (!obj) return c.json({ error: 'File not found' }, 404);
+  const headers = new Headers();
+  obj.writeHttpMetadata(headers);
+  headers.set('etag', obj.httpEtag);
+  headers.set('accept-ranges', 'bytes');
+  if (c.req.query('download')) headers.set('content-disposition', `attachment; filename="${clip.file_name.replace(/["\\]/g, '')}"`);
+  let status = 200;
+  if (c.req.header('range') && obj.range) {
+    const offset = 'suffix' in obj.range ? obj.size - obj.range.suffix : obj.range.offset ?? 0;
+    const length = 'suffix' in obj.range ? obj.range.suffix : obj.range.length ?? obj.size - offset;
+    headers.set('content-range', `bytes ${offset}-${offset + length - 1}/${obj.size}`);
+    headers.set('content-length', String(length));
+    status = 206;
+  } else {
+    headers.set('content-length', String(obj.size));
+  }
+  return new Response(obj.body, { status, headers });
+}

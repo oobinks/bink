@@ -10,8 +10,7 @@ It's hosted free on Cloudflare, works on any device, and only you can log in.
 - the "Improve the app" chat
 - Phase 4: the after-gig screen
 - Phase 5: clips (the content hub)
-
-Next: the press pack.
+- Phase 6: the press pack
 
 ---
 
@@ -165,6 +164,17 @@ Clips are stored in Cloudflare's storage, free up to 10GB. The **Storage** bar o
 The app stops uploads just before 10GB, so it never costs anything. To go past that, turn off **Stop uploads at the free 10GB**
 in Settings → Clips & captions. Each extra GB costs about 1p a month, and the Clips screen shows the monthly cost.
 Bin old clips to free up space.
+
+**How does the press pack work?**
+Open **More → Press pack**:
+1. **Upload photos** (your press shots), or tap **From your clips** to add videos and photos from your gigs.
+   The first photo becomes the big picture at the top; use the arrows to reorder.
+2. Fill in your **tagline, bio, venues you've played, links and tech rider**, then tap **Save**. Your name, genres,
+   location and email come from **Settings → Your details**. Your phone number only shows if you switch it on.
+3. Switch it **On** and tap **Share link**. Promoters get one page (your address + `/epk`) where they can watch the clips,
+   download any file, or **Download all** as a zip. Switch it **Off** and the page shows nothing.
+
+You can also add any clip from its own screen with **Add to press pack**. Binning a clip takes it off the press pack too.
 
 **How do client profiles work?**
 Everyone you quote, play for or invoice gets a profile automatically, matched by email or name. Open one from

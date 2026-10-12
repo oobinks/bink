@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Newspaper } from 'lucide-react';
 import { api } from './api.js';
 import Layout from './components/Layout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Settings from './pages/Settings.jsx';
 import More from './pages/More.jsx';
-import ComingSoon from './pages/ComingSoon.jsx';
 import Login from './pages/Login.jsx';
 import Ideas from './pages/Ideas.jsx';
 import IdeaChat from './pages/IdeaChat.jsx';
@@ -20,6 +18,7 @@ import Clients, { InvoiceNew } from './pages/Clients.jsx';
 import ClientDetail from './pages/ClientDetail.jsx';
 import AfterGig from './pages/AfterGig.jsx';
 import Content from './pages/Content.jsx';
+import Press from './pages/Press.jsx';
 
 function Gate({ title, children }) {
   return (
@@ -110,8 +109,7 @@ export default function App() {
         <Route path="clients/:id" element={<ClientDetail />} />
         <Route path="after/:id" element={<AfterGig />} />
         <Route path="invoices/:id" element={<InvoiceDetail />} />
-        <Route path="press/*" element={<ComingSoon icon={Newspaper} tone="violet" title="Press pack" phase={4}
-          text="Photos, videos, bio and rider, published to a public press pack page that updates itself." />} />
+        <Route path="press" element={<Press />} />
         <Route path="content/*" element={<Content />} />
         <Route path="more" element={<More />} />
         <Route path="settings" element={<Settings />} />

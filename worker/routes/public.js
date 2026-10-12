@@ -2,6 +2,7 @@
 // - the booking enquiry form (/book)
 // - a quote someone was sent a link to (/q/<secret>), with an Accept button
 // - the calendar feed for your phone (/cal/<secret>.ics)
+// - the press pack (/epk), only while it's switched on, and only the photos and clips you put on it
 import { Hono } from 'hono';
 import { now, todayUK, logActivity, all } from '../db.js';
 import { getSetting, setSetting } from '../settings.js';
@@ -12,6 +13,7 @@ import { identify } from '../auth.js';
 import { linkClient } from '../clients.js';
 import { describe, readSubmission } from '../form-fields.js';
 import { invoiceState } from '../invoice-logic.js';
+import { serveClipFile } from '../content.js';
 
 const app = new Hono();
 const MAX_PER_HOUR = 5;
@@ -81,6 +83,41 @@ async function findQuote(db, token) {
   const b = await db.prepare(`SELECT * FROM bookings WHERE quote_token = ? AND quote_sent_at IS NOT NULL`).bind(token).first();
   return b && b.status !== 'declined' ? b : null;
 }
+
+// The press pack for promoters.
+app.get('/press', async (c) => {
+  const db = c.env.DB;
+  const press = await getSetting(db, 'press');
+  if (!press.live) return c.json({ error: 'This press pack is not available right now.' }, 404);
+  const business = await getSetting(db, 'business');
+  const media = await all(db.prepare(`SELECT id, file_name, content_type, size_bytes FROM clips
+    WHERE in_press = 1 AND r2_key IS NOT NULL AND status != 'uploading' ORDER BY press_order, id`));
+  return c.json({
+    djName: business.djName,
+    tagline: press.tagline,
+    bio: press.bio,
+    genres: business.genres,
+    basedIn: business.baseLocation,
+    playedAt: press.playedAt,
+    links: Object.fromEntries(['instagram', 'tiktok', 'soundcloud', 'mixcloud', 'youtube'].map((k) => [k, press[k]]).filter(([, v]) => v)),
+    rider: press.rider,
+    email: business.email,
+    phone: press.showPhone ? business.phone : null,
+    media: media.map((m) => ({
+      id: m.id, kind: m.content_type?.startsWith('image/') ? 'photo' : 'video', contentType: m.content_type, size: m.size_bytes,
+      ext: (m.file_name.match(/\.(\w{2,5})$/)?.[1] || '').toLowerCase(),
+    })),
+  });
+});
+
+app.get('/press/media/:id{[0-9]+}', async (c) => {
+  const db = c.env.DB;
+  if (!(await getSetting(db, 'press')).live) return c.json({ error: 'Not found' }, 404);
+  const clip = await db.prepare(`SELECT id, r2_key, file_name FROM clips WHERE id = ? AND in_press = 1 AND r2_key IS NOT NULL
+    AND status != 'uploading'`).bind(Number(c.req.param('id'))).first();
+  if (!clip) return c.json({ error: 'Not found' }, 404);
+  return serveClipFile(c, clip);
+});
 
 app.get('/quote/:token', async (c) => {
   const db = c.env.DB;

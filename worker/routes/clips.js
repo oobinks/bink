@@ -2,15 +2,17 @@
 // Files go to Cloudflare storage (the CLIPS bucket) in pieces, so big videos upload reliably from a phone.
 import { Hono } from 'hono';
 import { now, nowUK, logActivity, all } from '../db.js';
-import { draftCaption, nextFreeSlots, contentSettings, storageCostPence, UPLOAD_LIMIT_BYTES, FREE_BYTES } from '../content.js';
+import {
+  draftCaption, nextFreeSlots, contentSettings, storageCostPence, serveClipFile, UPLOAD_LIMIT_BYTES, FREE_BYTES,
+} from '../content.js';
 
 const app = new Hono();
-const STATUSES = ['new', 'starred', 'scheduled', 'posted'];
+const STATUSES = ['new', 'starred', 'scheduled', 'posted', 'library'];
 const TIME = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_FILE_BYTES = 4 * 1000 ** 3;
 
 const COLS = `c.id, c.booking_id, c.file_name, c.status, c.caption, c.hashtags, c.scheduled_at, c.posted_at, c.reminded_at,
-  c.size_bytes, c.content_type, c.is_sample, c.created_at, (c.r2_key IS NOT NULL) AS has_file,
+  c.size_bytes, c.content_type, c.is_sample, c.created_at, c.in_press, (c.r2_key IS NOT NULL) AS has_file,
   b.venue_name, b.client_name, b.event_date, b.event_type`;
 const FROM = 'FROM clips c LEFT JOIN bookings b ON b.id = c.booking_id';
 
@@ -64,8 +66,12 @@ app.post('/upload', async (c) => {
   const n = (await db.prepare('SELECT COUNT(*) AS n FROM clips WHERE booking_id IS ?').bind(bookingId).first('n')) || 0;
   const draft = draftCaption(booking, content, n);
   const ts = now();
-  const { meta } = await db.prepare(`INSERT INTO clips (booking_id, file_name, status, caption, hashtags, size_bytes, content_type, created_at, updated_at)
-    VALUES (?, ?, 'uploading', ?, ?, ?, ?, ?, ?)`).bind(bookingId, name, draft.caption, draft.hashtags, size, type, ts, ts).run();
+  // Uploaded from the press pack screen: goes straight onto it, at the end, and skips star-or-bin.
+  const press = input.press ? 1 : 0;
+  const order = press ? (await db.prepare('SELECT COALESCE(MAX(press_order), 0) + 1 AS n FROM clips').first('n')) : 0;
+  const { meta } = await db.prepare(`INSERT INTO clips (booking_id, file_name, status, caption, hashtags, size_bytes, content_type,
+      in_press, press_order, created_at, updated_at)
+    VALUES (?, ?, 'uploading', ?, ?, ?, ?, ?, ?, ?, ?)`).bind(bookingId, name, draft.caption, draft.hashtags, size, type, press, order, ts, ts).run();
   const id = meta.last_row_id;
   const key = `clips/${id}-${name.replace(/\s+/g, '-')}`;
   const mpu = await c.env.CLIPS.createMultipartUpload(key, { httpMetadata: { contentType: type } });
@@ -98,8 +104,8 @@ app.post('/:id{[0-9]+}/complete', async (c) => {
   if (!Array.isArray(parts) || !parts.length) return c.json({ error: 'No pieces uploaded' }, 400);
   const obj = await c.env.CLIPS.resumeMultipartUpload(clip.r2_key, clip.upload_id)
     .complete(parts.map((p) => ({ partNumber: Number(p.partNumber), etag: String(p.etag) })));
-  await db.prepare(`UPDATE clips SET status = 'new', upload_id = NULL, size_bytes = ?, updated_at = ? WHERE id = ?`)
-    .bind(obj.size, now(), clip.id).run();
+  await db.prepare(`UPDATE clips SET status = ?, upload_id = NULL, size_bytes = ?, updated_at = ? WHERE id = ?`)
+    .bind(clip.in_press ? 'library' : 'new', obj.size, now(), clip.id).run();
   return c.json({ ok: true });
 });
 
@@ -115,24 +121,7 @@ app.post('/uploaded', async (c) => {
 app.get('/:id{[0-9]+}/file', async (c) => {
   const clip = await load(c);
   if (!clip?.r2_key || clip.status === 'uploading') return c.json({ error: 'File not found' }, 404);
-  const obj = await c.env.CLIPS.get(clip.r2_key, { range: c.req.raw.headers });
-  if (!obj) return c.json({ error: 'File not found' }, 404);
-  const headers = new Headers();
-  obj.writeHttpMetadata(headers);
-  headers.set('etag', obj.httpEtag);
-  headers.set('accept-ranges', 'bytes');
-  if (c.req.query('download')) headers.set('content-disposition', `attachment; filename="${clip.file_name.replace(/"/g, '')}"`);
-  let status = 200;
-  if (c.req.header('range') && obj.range) {
-    const offset = 'suffix' in obj.range ? obj.size - obj.range.suffix : obj.range.offset ?? 0;
-    const length = 'suffix' in obj.range ? obj.range.suffix : obj.range.length ?? obj.size - offset;
-    headers.set('content-range', `bytes ${offset}-${offset + length - 1}/${obj.size}`);
-    headers.set('content-length', String(length));
-    status = 206;
-  } else {
-    headers.set('content-length', String(obj.size));
-  }
-  return new Response(obj.body, { status, headers });
+  return serveClipFile(c, clip);
 });
 
 app.get('/:id{[0-9]+}', async (c) => {
@@ -176,11 +165,21 @@ app.patch('/:id{[0-9]+}', async (c) => {
     }
     set.reminded_at = null;
   }
+  if ('in_press' in input) {
+    set.in_press = input.in_press ? 1 : 0;
+    if (set.in_press && !clip.in_press) {
+      if (!clip.r2_key) return c.json({ error: 'Only clips with a file can go in the press pack' }, 400);
+      set.press_order = await db.prepare('SELECT COALESCE(MAX(press_order), 0) + 1 AS n FROM clips').first('n');
+    }
+  }
   if (set.status === 'scheduled' && !(set.scheduled_at || clip.scheduled_at)) return c.json({ error: 'Pick a date and time' }, 400);
   const cols = Object.keys(set);
   if (!cols.length) return c.json({ ok: true });
   await db.prepare(`UPDATE clips SET ${cols.map((k) => `${k} = ?`).join(', ')}, updated_at = ? WHERE id = ?`)
     .bind(...cols.map((k) => set[k]), now(), clip.id).run();
+  if ('in_press' in set && set.in_press !== clip.in_press) {
+    await logActivity(db, set.in_press ? 'Added to press pack' : 'Removed from press pack', clip.caption || clip.file_name);
+  }
   if (set.status === 'posted') await logActivity(db, 'Clip posted', `${clip.caption || clip.file_name} (${gigName(clip)})`);
   else if (set.status === 'scheduled') await logActivity(db, 'Clip scheduled', `${set.scheduled_at.replace('T', ' ')}: ${clip.caption || clip.file_name}`);
   return c.json({ ok: true });
@@ -201,6 +200,30 @@ app.post('/spread', async (c) => {
     updated_at = ? WHERE id = ?`).bind(slots[i], ts, s.id)));
   await logActivity(db, 'Clips scheduled', `${starred.length} clip(s), ${slots[0].slice(0, 10)} to ${slots.at(-1).slice(0, 10)}`);
   return c.json({ scheduled: starred.length, from: slots[0], to: slots.at(-1) });
+});
+
+// The press pack's media (in order), everything else that could go on it, and venue suggestions for "Played at".
+app.get('/press', async (c) => {
+  const db = c.env.DB;
+  const [items, others, venues] = await Promise.all([
+    all(db.prepare(`SELECT ${COLS} ${FROM} WHERE c.in_press = 1 AND c.r2_key IS NOT NULL AND c.status != 'uploading'
+      ORDER BY c.press_order, c.id`)),
+    all(db.prepare(`SELECT ${COLS} ${FROM} WHERE c.in_press = 0 AND c.r2_key IS NOT NULL AND c.status != 'uploading'
+      ORDER BY CASE c.status WHEN 'new' THEN 1 ELSE 0 END, c.id DESC LIMIT 200`)),
+    all(db.prepare(`SELECT venue_name, MAX(event_date) AS last FROM bookings
+      WHERE status IN ('confirmed', 'completed') AND is_sample = 0 AND venue_name IS NOT NULL AND trim(venue_name) != ''
+        AND event_date <= ? GROUP BY lower(trim(venue_name)) ORDER BY last DESC LIMIT 40`).bind(nowUK().slice(0, 10))),
+  ]);
+  return c.json({ items, others, venues: venues.map((v) => v.venue_name.trim()) });
+});
+
+// New order for the press pack, e.g. after moving a photo to the top.
+app.post('/press/order', async (c) => {
+  const db = c.env.DB;
+  const { ids } = (await c.req.json().catch(() => null)) || {};
+  if (!Array.isArray(ids) || ids.length > 500) return c.json({ error: 'Send the clips in order' }, 400);
+  await db.batch(ids.map((id, i) => db.prepare('UPDATE clips SET press_order = ? WHERE id = ? AND in_press = 1').bind(i + 1, Number(id))));
+  return c.json({ ok: true });
 });
 
 // Bin: the file is deleted from storage too, freeing up space.
