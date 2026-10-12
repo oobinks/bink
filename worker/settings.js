@@ -64,6 +64,7 @@ export const DEFAULT_SETTINGS = {
   // Content hub: draft captions and when clips get scheduled.
   content: {
     postTime: '19:00',
+    stopAtFree: true, // stop uploads just before Cloudflare's free 10GB, so storage never costs anything
     hashtags: '#housemusic #funkyhouse #disco #essexdj #djlife',
     // {venue}, {event} and {night} (e.g. "Saturday night") are filled in from the gig.
     captions: [

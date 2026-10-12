@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { draftCaption, nextFreeSlots } from '../worker/content.js';
+import { draftCaption, nextFreeSlots, storageCostPence } from '../worker/content.js';
 import { DEFAULT_SETTINGS } from '../worker/settings.js';
 
 const PORT = 8800;
@@ -95,7 +95,17 @@ test('only videos and photos, and never past the free storage', async () => {
   assert.match(over.body.error, /storage is full/);
   // Unfinished uploads don't show anywhere, and binning them frees the space.
   assert.ok(!(await call('GET', '/api/clips')).body.toReview.some((c) => c.id === big.body.id));
-  for (const id of [big.body.id, full.body.id]) assert.equal((await call('DELETE', `/api/clips/${id}`)).status, 200);
+  // With the free-storage stop turned off, uploads carry on and the monthly cost shows.
+  assert.equal((await call('GET', '/api/clips')).body.storage.costPence, 0);
+  await call('PUT', '/api/settings/content', { stopAtFree: false });
+  const past = await call('POST', '/api/clips/upload', { file_name: 'z.mp4', content_type: 'video/mp4', size: 3.9e9 });
+  assert.equal(past.status, 200);
+  const storage = (await call('GET', '/api/clips')).body.storage;
+  assert.equal(storage.stopAtFree, false);
+  assert.ok(storage.usedBytes > storage.freeBytes && storage.costPence > 0);
+  await call('PUT', '/api/settings/content', { stopAtFree: true });
+  for (const id of [big.body.id, full.body.id, past.body.id]) assert.equal((await call('DELETE', `/api/clips/${id}`)).status, 200);
+  assert.equal((await call('GET', '/api/clips')).body.storage.costPence, 0);
 });
 
 test('a photo uploads too', async () => {
@@ -153,4 +163,10 @@ test('scheduling skips days that already have a post, and today if the time has 
   assert.deepEqual(nextFreeSlots(['2026-10-13T19:00'], 3, '19:00', '2026-10-12T20:00'),
     ['2026-10-14T19:00', '2026-10-15T19:00', '2026-10-16T19:00']);
   assert.deepEqual(nextFreeSlots([], 1, '19:00', '2026-10-12T09:00'), ['2026-10-12T19:00']);
+});
+
+test('storage cost: free up to 10GB, then about 1p a GB a month', () => {
+  assert.equal(storageCostPence(9e9), 0);
+  assert.equal(storageCostPence(10e9), 0);
+  assert.equal(storageCostPence(20e9), 11.4, '10GB over x $0.015 x 76p');
 });

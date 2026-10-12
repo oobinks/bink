@@ -161,7 +161,9 @@ Then tap **Done**.
    (it's already copied) and post. Then tap **Posted**.
 
 The app can't post to TikTok for you: TikTok only allows that for apps it has reviewed and approved.
-Clips are stored in Cloudflare's storage, free up to 10GB. The app stops uploads just before that, so it never costs anything.
+Clips are stored in Cloudflare's storage, free up to 10GB. The **Storage** bar on the Clips screen shows how close you are.
+The app stops uploads just before 10GB, so it never costs anything. To go past that, turn off **Stop uploads at the free 10GB**
+in Settings → Clips & captions. Each extra GB costs about 1p a month, and the Clips screen shows the monthly cost.
 Bin old clips to free up space.
 
 **How do client profiles work?**

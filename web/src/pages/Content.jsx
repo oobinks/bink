@@ -51,6 +51,37 @@ function ClipRow({ clip, now }) {
   );
 }
 
+export function costLabel(pence) {
+  if (pence < 1) return 'less than 1p';
+  return pence < 100 ? `about ${Math.round(pence)}p` : `about £${(pence / 100).toFixed(2)}`;
+}
+
+function StorageCard({ storage }) {
+  const { usedBytes, freeBytes, limitBytes, stopAtFree, costPence } = storage;
+  const ratio = usedBytes / freeBytes;
+  const over = usedBytes > freeBytes;
+  const tone = over || (stopAtFree && usedBytes >= limitBytes) ? 'red' : ratio >= 0.8 ? 'gold' : '';
+  return (
+    <div className="card storage-card">
+      <div className="row-head">
+        <h3>Storage</h3>
+        <span className={`pill ${over ? 'red' : 'green'}`}>{over ? `${costLabel(costPence)} a month` : 'Free'}</span>
+      </div>
+      <div className={`meter big ${tone}`}><span style={{ width: `${Math.min(100, ratio * 100)}%` }} /></div>
+      <div className="row-sub" style={{ marginTop: 8 }}>
+        {sizeLabel(usedBytes)} of {sizeLabel(freeBytes)} free ({Math.floor(Math.min(ratio, 9.99) * 100)}%)
+      </div>
+      <p className="hint" style={{ margin: '6px 0 0' }}>
+        {over
+          ? `${sizeLabel(usedBytes - freeBytes)} over the free amount, costing ${costLabel(costPence)} a month. Bin old clips to bring it down.`
+          : stopAtFree && usedBytes >= limitBytes
+            ? 'Full. Bin some old clips to upload more.'
+            : `${sizeLabel(freeBytes - usedBytes)} left before it costs anything.`}
+      </p>
+    </div>
+  );
+}
+
 function Back({ to = '/content', children }) {
   return (
     <div className="chat-head" style={{ marginBottom: 14 }}>
@@ -74,7 +105,6 @@ function Hub() {
     setMsg(r.scheduled ? `${r.scheduled} scheduled, one a day from ${when(r.from)}.` : '');
     load();
   };
-  const pct = Math.min(100, (storage.usedBytes / storage.freeBytes) * 100);
 
   return (
     <>
@@ -82,6 +112,8 @@ function Hub() {
         <h1>Clips</h1>
         <Link className="btn primary small" to="/content/upload"><Upload size={16} /> Upload</Link>
       </div>
+
+      <StorageCard storage={storage} />
 
       {toReview.length > 0 && (
         <Link to="/content/review" className="alert" style={{ marginBottom: 18 }}>
@@ -121,11 +153,6 @@ function Hub() {
           <div className="list">{posted.map((c) => <ClipRow key={c.id} clip={c} now={now} />)}</div>
         </div>
       )}
-
-      <div className="section">
-        <div className="hint">Storage: {sizeLabel(storage.usedBytes)} of {sizeLabel(storage.freeBytes)} free space used</div>
-        <div className="meter"><span style={{ width: `${pct}%` }} /></div>
-      </div>
     </>
   );
 }

@@ -398,5 +398,10 @@ details.step[open] { padding-bottom: 4px; }
 .clip-media.empty-media { height: 220px; }
 .meter { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin-top: 6px; }
 .meter span { display: block; height: 100%; background: linear-gradient(90deg, var(--violet), var(--pink)); transition: width 0.3s; }
+.meter.big { height: 12px; margin-top: 4px; }
+.meter.gold span { background: var(--gold); }
+.meter.red span { background: var(--red); }
+.storage-card { margin-bottom: 18px; }
+.storage-card .row-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 .review-actions .btn { min-height: 56px; font-size: 16px; }

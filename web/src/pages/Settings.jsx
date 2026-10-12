@@ -508,6 +508,13 @@ export default function Settings() {
             <>
               <Field label="Post time" type="time" step="3600" value={v.postTime} onChange={set('postTime')}
                 hint="Reminders go out on the hour." />
+              <div className="row-head">
+                <h3>Stop uploads at the free 10GB</h3>
+                <label className="switch"><input type="checkbox" checked={v.stopAtFree} onChange={(e) => set('stopAtFree')(e.target.checked)} /> {v.stopAtFree ? 'On' : 'Off'}</label>
+              </div>
+              <p className="lead">{v.stopAtFree
+                ? 'Storage never costs anything. When it fills up, bin some old clips to make room.'
+                : 'Uploads carry on past 10GB. Each extra GB costs about 1p a month, shown on the Clips screen.'}</p>
               <Field label="Hashtags" type="textarea" value={v.hashtags} onChange={set('hashtags')}
                 hint="Added under every caption. You can change them on each clip." />
               <Field label="Caption ideas (one per line)" type="textarea" rows={8} value={v.captions.join('\n')}

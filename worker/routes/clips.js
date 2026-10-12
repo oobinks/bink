@@ -2,7 +2,7 @@
 // Files go to Cloudflare storage (the CLIPS bucket) in pieces, so big videos upload reliably from a phone.
 import { Hono } from 'hono';
 import { now, nowUK, logActivity, all } from '../db.js';
-import { draftCaption, nextFreeSlots, contentSettings, UPLOAD_LIMIT_BYTES, FREE_BYTES } from '../content.js';
+import { draftCaption, nextFreeSlots, contentSettings, storageCostPence, UPLOAD_LIMIT_BYTES, FREE_BYTES } from '../content.js';
 
 const app = new Hono();
 const STATUSES = ['new', 'starred', 'scheduled', 'posted'];
@@ -26,13 +26,15 @@ app.get('/', async (c) => {
   const rows = await all(db.prepare(`SELECT ${COLS} ${FROM} WHERE c.status != 'uploading' ${gig ? 'AND c.booking_id = ?' : ''}
     ORDER BY CASE c.status WHEN 'scheduled' THEN c.scheduled_at END, c.posted_at DESC, c.id DESC LIMIT 500`)
     .bind(...(gig ? [Number(gig)] : [])));
+  const used = await usedBytes(db);
+  const { stopAtFree } = await contentSettings(db);
   return c.json({
     now: nowUK(),
     toReview: rows.filter((r) => r.status === 'new'),
     scheduled: rows.filter((r) => r.status === 'scheduled'),
     starred: rows.filter((r) => r.status === 'starred'),
     posted: rows.filter((r) => r.status === 'posted').slice(0, 30),
-    storage: { usedBytes: await usedBytes(db), freeBytes: FREE_BYTES, limitBytes: UPLOAD_LIMIT_BYTES },
+    storage: { usedBytes: used, freeBytes: FREE_BYTES, limitBytes: UPLOAD_LIMIT_BYTES, stopAtFree, costPence: storageCostPence(used) },
   });
 });
 
@@ -51,15 +53,16 @@ app.post('/upload', async (c) => {
   if (!/^(video|image)\//.test(type)) return c.json({ error: 'Only videos and photos can be uploaded' }, 400);
   if (!Number.isFinite(size) || size <= 0) return c.json({ error: 'That file looks empty' }, 400);
   if (size > MAX_FILE_BYTES) return c.json({ error: 'That file is over 4GB. Try a shorter clip.' }, 400);
-  if ((await usedBytes(db)) + size > UPLOAD_LIMIT_BYTES) {
-    return c.json({ error: "Your free storage is full. Bin some old clips first so it stays free." }, 400);
+  const content = await contentSettings(db);
+  if (content.stopAtFree && (await usedBytes(db)) + size > UPLOAD_LIMIT_BYTES) {
+    return c.json({ error: 'Your free storage is full. Bin some old clips first so it stays free, or turn off "Stop uploads at the free 10GB" in Settings → Clips & captions.' }, 400);
   }
   const bookingId = input.booking_id ? Number(input.booking_id) : null;
   const booking = bookingId ? await db.prepare('SELECT * FROM bookings WHERE id = ?').bind(bookingId).first() : null;
   if (bookingId && !booking) return c.json({ error: 'Gig not found' }, 404);
   const name = String(input.file_name || 'clip').replace(/[^\w.\- ]+/g, '').trim().slice(0, 120) || 'clip';
   const n = (await db.prepare('SELECT COUNT(*) AS n FROM clips WHERE booking_id IS ?').bind(bookingId).first('n')) || 0;
-  const draft = draftCaption(booking, await contentSettings(db), n);
+  const draft = draftCaption(booking, content, n);
   const ts = now();
   const { meta } = await db.prepare(`INSERT INTO clips (booking_id, file_name, status, caption, hashtags, size_bytes, content_type, created_at, updated_at)
     VALUES (?, ?, 'uploading', ?, ?, ?, ?, ?, ?)`).bind(bookingId, name, draft.caption, draft.hashtags, size, type, ts, ts).run();

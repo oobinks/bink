@@ -5,6 +5,15 @@ import { notify } from './push.js';
 
 export const FREE_BYTES = 10 * 1000 ** 3; // Cloudflare's free storage
 export const UPLOAD_LIMIT_BYTES = 9.5 * 1000 ** 3; // stop a little before it, so it never costs anything
+// Cloudflare's price for storage over the free 10GB: $0.015 per GB a month, shown in pence at roughly $1 = 76p.
+export const USD_PER_GB_MONTH = 0.015;
+export const PENCE_PER_USD = 76;
+
+// What the stored clips cost a month, in pence (can be a fraction of a penny). 0 while under 10GB.
+export function storageCostPence(usedBytes) {
+  const over = Math.max(0, usedBytes - FREE_BYTES) / 1000 ** 3;
+  return Math.round(over * USD_PER_GB_MONTH * PENCE_PER_USD * 100) / 100;
+}
 
 const weekday = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' });
 
