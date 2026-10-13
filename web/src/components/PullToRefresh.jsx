@@ -13,6 +13,9 @@ function scrolledParent(el) {
   return false;
 }
 
+// The app scrolls inside .shell on phones, and the whole page elsewhere.
+const scrolled = () => window.scrollY > 0 || (document.querySelector('.shell')?.scrollTop ?? 0) > 0;
+
 export default function PullToRefresh() {
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,7 +24,7 @@ export default function PullToRefresh() {
 
   useEffect(() => {
     const onStart = (e) => {
-      if (refreshing || window.scrollY > 0 || e.touches.length !== 1 || scrolledParent(e.target)) {
+      if (refreshing || scrolled() || e.touches.length !== 1 || scrolledParent(e.target)) {
         start.current = null;
         return;
       }
@@ -30,7 +33,7 @@ export default function PullToRefresh() {
     const onMove = (e) => {
       if (start.current === null) return;
       const dy = e.touches[0].clientY - start.current;
-      if (dy <= 0 || window.scrollY > 0) {
+      if (dy <= 0 || scrolled()) {
         pullRef.current = 0;
         setPull(0);
         return;

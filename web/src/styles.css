@@ -68,6 +68,12 @@ h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
 .tab.active { color: var(--gold); }
 .brand { display: none; }
 
+/* Phones: the page never scrolls, only the app inside it, so the tab bar stays put (no iPhone bounce dragging it). */
+@media (max-width: 899px) {
+  html.in-app, html.in-app body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  html.in-app .shell { height: 100vh; height: 100dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+}
+
 /* Side bar on laptops */
 @media (min-width: 900px) {
   .shell { display: grid; grid-template-columns: 232px 1fr; }

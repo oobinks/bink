@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { House, CalendarDays, Receipt, Clapperboard, Menu } from 'lucide-react';
 import PullToRefresh from './PullToRefresh.jsx';
 
@@ -11,8 +12,18 @@ const tabs = [
 ];
 
 export default function Layout() {
+  const shell = useRef();
+  const { pathname } = useLocation();
+  // On phones the page itself stays still and only the app scrolls inside it, so the bottom bar
+  // can't get dragged along when iPhone "bounces" the page (see .in-app in styles.css).
+  useEffect(() => {
+    document.documentElement.classList.add('in-app');
+    return () => document.documentElement.classList.remove('in-app');
+  }, []);
+  // Each new screen starts at the top.
+  useEffect(() => { shell.current?.scrollTo(0, 0); window.scrollTo(0, 0); }, [pathname]);
   return (
-    <div className="shell">
+    <div className="shell" ref={shell}>
       <PullToRefresh />
       <nav className="tabbar">
         <div className="brand">
