@@ -3,6 +3,7 @@
 // - a quote someone was sent a link to (/q/<secret>), with an Accept button
 // - the calendar feed for your phone (/cal/<secret>.ics)
 // - the press pack (/epk), only while it's switched on, and only the photos and clips you put on it
+// - the landing page (/ when you're not logged in): name, tagline, links to the above, socials and contact
 import { Hono } from 'hono';
 import { now, todayUK, logActivity, all } from '../db.js';
 import { getSetting, setSetting } from '../settings.js';
@@ -83,6 +84,26 @@ async function findQuote(db, token) {
   const b = await db.prepare(`SELECT * FROM bookings WHERE quote_token = ? AND quote_sent_at IS NOT NULL`).bind(token).first();
   return b && b.status !== 'declined' ? b : null;
 }
+
+// The landing page: just enough to show the right buttons.
+app.get('/home', async (c) => {
+  const db = c.env.DB;
+  const [press, business] = await Promise.all([getSetting(db, 'press'), getSetting(db, 'business')]);
+  const cover = press.live
+    ? await db.prepare(`SELECT id FROM clips WHERE in_press = 1 AND r2_key IS NOT NULL AND status != 'uploading'
+        AND content_type LIKE 'image/%' ORDER BY press_star DESC, press_order, id LIMIT 1`).first('id')
+    : null;
+  return c.json({
+    djName: business.djName,
+    tagline: press.tagline,
+    genres: business.genres,
+    links: Object.fromEntries(['instagram', 'tiktok', 'soundcloud', 'mixcloud', 'youtube'].map((k) => [k, press[k]]).filter(([, v]) => v)),
+    email: business.email,
+    phone: press.showPhone ? business.phone : null,
+    pressLive: Boolean(press.live),
+    coverId: cover ?? null,
+  });
+});
 
 // The press pack for promoters.
 app.get('/press', async (c) => {

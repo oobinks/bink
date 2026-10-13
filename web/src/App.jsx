@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { api } from './api.js';
 import Layout from './components/Layout.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -20,6 +20,7 @@ import AfterGig from './pages/AfterGig.jsx';
 import Content from './pages/Content.jsx';
 import Press from './pages/Press.jsx';
 import Analytics from './pages/Analytics.jsx';
+import Landing from './pages/Landing.jsx';
 
 function Gate({ title, children }) {
   return (
@@ -39,6 +40,8 @@ function Gate({ title, children }) {
 export default function App() {
   const [state, setState] = useState('loading');
   const [user, setUser] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const check = async () => {
     try {
@@ -67,7 +70,11 @@ export default function App() {
   }, []);
 
   if (state === 'loading') return null;
-  if (state === 'login') return <Login onDone={check} />;
+  // Visitors to the main address see the public landing page; you log in via its "DJ login" link (/login).
+  if (state === 'login') {
+    if (location.pathname === '/') return <Landing />;
+    return <Login onDone={() => { check(); if (location.pathname === '/login') navigate('/', { replace: true }); }} />;
+  }
   if (state === 'logged-out') {
     return (
       <Gate title="Please log in again">

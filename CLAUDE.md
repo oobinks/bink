@@ -36,7 +36,8 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
   uploads stop at 9.5GB to stay on R2's free 10GB). No auto-posting: TikTok needs an app audit, so it's share-sheet only.
 - `analytics.js` + `routes/analytics.js`: the Analytics screen's sums (income = paid invoices + deposits, as on Money).
 - **Public (no login):** only `routes/public.js` (booking form, quote links with Accept, invoice links, calendar
-  feed, press pack) and the `/book`, `/q/:token`, `/i/:token` and `/epk` screens. Never expose anything else publicly.
+  feed, press pack, landing page) and the `/book`, `/q/:token`, `/i/:token` and `/epk` screens, plus the landing page at `/`
+  for anyone not logged in (ctrinn logs in via its "DJ login" link, `/login`). Never expose anything else publicly.
   The press pack (`/epk`) is off until `press.live` is on, and only shows clips with `in_press = 1`; the phone number only if `press.showPhone`.
 - `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.
 - `web/src/pdf.js`: branded PDF quotes and invoices, made in the browser.

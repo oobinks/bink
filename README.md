@@ -178,6 +178,12 @@ Open **More → Press pack**:
 
 You can also add any clip from its own screen with **Add to press pack**. Binning a clip takes it off the press pack too.
 
+**What do other people see at my web address?**
+A simple landing page: your name, tagline and genres, your social links, and buttons for **Private party booking enquiry**,
+**Press pack** (only while it's switched on) and **Contact** (emails you). The tagline and social links come from
+**More → Press pack**; if a press photo is starred, it's the background. You go straight into the app because you stay
+logged in. On a new device, tap **DJ login** at the bottom.
+
 **Where are my stats?**
 **More → Analytics.** Pick **Last 12 months**, **Tax year** or **All time** to see income (paid invoices and deposits),
 gigs played and booked ahead, your average fee, which gig types earn most, your busiest days, how many enquiries turn into

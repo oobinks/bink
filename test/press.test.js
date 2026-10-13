@@ -103,10 +103,22 @@ test('switched on, the public page shows your details and only the chosen media'
   assert.equal((await (await anon('/api/public/press')).json()).phone, '07818543677');
 });
 
+test('the landing page shows public details only, and the press pack link only when it is on', async () => {
+  const home = await (await anon('/api/public/home')).json();
+  assert.equal(home.djName, 'ctrinn');
+  assert.equal(home.pressLive, true);
+  assert.equal(home.coverId, photo, 'starred press photo is the background');
+  assert.deepEqual(home.links, { instagram: '@ctrinn' });
+  assert.equal(JSON.stringify(home).includes('bank'), false);
+});
+
 test('removing a clip or switching the page off takes it down', async () => {
   await call('PATCH', `/api/clips/${video}`, { in_press: false });
   assert.equal((await anon(`/api/public/press/media/${video}`)).status, 404);
   await call('PUT', '/api/settings/press', { live: false });
   assert.equal((await anon('/api/public/press')).status, 404);
   assert.equal((await anon(`/api/public/press/media/${photo}`)).status, 404);
+  const home = await (await anon('/api/public/home')).json();
+  assert.equal(home.pressLive, false);
+  assert.equal(home.coverId, null);
 });

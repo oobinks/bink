@@ -20,7 +20,7 @@ export function linkFor(kind, value) {
   return `https://${v}`;
 }
 
-const LINKS = [
+export const LINKS = [
   ['instagram', 'Instagram', Camera], ['tiktok', 'TikTok', Video], ['soundcloud', 'SoundCloud', Music],
   ['mixcloud', 'Mixcloud', Music], ['youtube', 'YouTube', Video],
 ];
