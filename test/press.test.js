@@ -110,6 +110,7 @@ test('the landing page shows public details only, and the press pack link only w
   assert.equal(home.coverId, photo, 'starred press photo is the background');
   assert.deepEqual(home.links, { instagram: '@ctrinn' });
   assert.equal(JSON.stringify(home).includes('bank'), false);
+  assert.equal(home.phone, undefined, 'phone number is never on the landing page');
 });
 
 test('removing a clip or switching the page off takes it down', async () => {

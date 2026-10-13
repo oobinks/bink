@@ -525,8 +525,6 @@ details.step[open] { padding-bottom: 4px; }
 .landing-links { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
 .landing-links .btn { min-height: 54px; font-size: 16px; }
 .landing-links .btn:not(.primary) { background: rgba(21, 19, 28, 0.85); border: 1px solid var(--line); }
-.landing-phone { color: var(--muted); font-size: 14px; margin: 14px 0 0; }
-.landing-phone a { color: var(--gold); }
 .landing-foot { margin-top: auto; padding-top: 32px; font-size: 12px; }
 .landing-foot a { color: var(--faint); }
 .landing-preview { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; gap: 10px;

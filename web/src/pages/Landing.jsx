@@ -46,7 +46,6 @@ export default function Landing({ preview = false }) {
           {h.pressLive && <Link className="btn block" to="/epk"><Newspaper size={18} /> Press Pack</Link>}
           {h.email && <a className="btn block" href={`mailto:${h.email}`}><Mail size={18} /> Contact</a>}
         </nav>
-        {h.phone && <p className="landing-phone">or call <a href={`tel:${h.phone.replace(/\s+/g, '')}`}>{h.phone}</a></p>}
       </main>
       <footer className="landing-foot">{!preview && <Link to="/login">DJ login</Link>}</footer>
     </div>

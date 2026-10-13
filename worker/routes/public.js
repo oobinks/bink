@@ -98,8 +98,7 @@ app.get('/home', async (c) => {
     tagline: press.tagline,
     genres: business.genres,
     links: Object.fromEntries(['instagram', 'tiktok', 'soundcloud', 'mixcloud', 'youtube'].map((k) => [k, press[k]]).filter(([, v]) => v)),
-    email: business.email,
-    phone: press.showPhone ? business.phone : null,
+    email: business.email, // no phone number here: that's only on the press pack
     pressLive: Boolean(press.live),
     coverId: cover ?? null,
   });
