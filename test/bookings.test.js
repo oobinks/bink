@@ -168,6 +168,18 @@ test('a club set added by hand starts confirmed with its fee, and invoices on no
   assert.ok(history.some((h) => h.action === 'Club set added'));
   await call('DELETE', `/api/invoices/${invId}`);
   await call('DELETE', `/api/bookings/${b.id}`);
+  // Pick the promoter from your clients: the booking (and its invoice) goes to them.
+  const promoter = (await call('POST', '/api/clients', { name: 'Night Owl Events', email: 'bookings@nightowl.example' })).body.id;
+  const r2 = await call('POST', '/api/bookings', { kind: 'club', client_id: promoter, venue_name: 'Neon Rooms', event_date: future(17), price_pence: 30000 });
+  const b2 = (await call('GET', `/api/bookings/${r2.body.id}`)).body;
+  assert.deepEqual([b2.client_id, b2.client_name, b2.client_email, b2.venue_name], [promoter, 'Night Owl Events', 'bookings@nightowl.example', 'Neon Rooms']);
+  assert.equal((await call('GET', `/api/clients/${promoter}`)).body.bookings.length, 1, 'shows on their profile');
+  // Switching to another client when editing.
+  const other = (await call('POST', '/api/clients', { name: 'Copper Bar Ltd' })).body.id;
+  await call('PATCH', `/api/bookings/${b2.id}`, { client_id: other });
+  assert.equal((await call('GET', `/api/bookings/${b2.id}`)).body.client_name, 'Copper Bar Ltd');
+  assert.equal((await call('POST', '/api/bookings', { kind: 'club', client_id: 99999, venue_name: 'X', event_date: future(3), price_pence: 1 })).status, 400);
+  await call('DELETE', `/api/bookings/${b2.id}`);
   // The public form can't create club sets.
   await call('POST', '/api/public/enquiry', { ...enquiry, client_name: 'Sneaky', kind: 'club' }, { auth: false, ip: '10.0.0.9' });
   const sneaky = (await call('GET', '/api/bookings?status=new')).body.bookings.find((x) => x.client_name === 'Sneaky');

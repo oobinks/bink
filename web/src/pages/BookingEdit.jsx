@@ -1,12 +1,50 @@
 // Add a booking by hand: a private party enquiry (e.g. someone rang you) or a club set; or edit a booking's details.
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, PartyPopper, Disc3 } from 'lucide-react';
+import { ArrowLeft, PartyPopper, Disc3, UserPlus, Search } from 'lucide-react';
 import { api } from '../api.js';
+import { ClientPicker, NewClientForm } from './Clients.jsx';
 import { fromPence, toPence } from '../format.js';
 
 const FIELDS = ['client_name', 'event_type', 'event_date', 'start_time', 'end_time', 'venue_name', 'venue_address',
   'equipment', 'guests', 'contact_method', 'client_phone', 'client_email', 'instagram', 'notes'];
+
+// Who pays you for a club set: pick one of your clients, or add a new one.
+function ClientChooser({ client, onChange }) {
+  const [mode, setMode] = useState(client ? null : 'pick');
+  const choose = async (id) => {
+    const c = await api(`/clients/${id}`);
+    onChange({ id: c.id, name: c.name, email: c.email, phone: c.phone });
+    setMode(null);
+  };
+  if (client && !mode) {
+    return (
+      <div className="field">
+        <label>Client (who pays you) *</label>
+        <div className="chosen-client">
+          <div className="row-main">
+            <div className="row-title">{client.name}</div>
+            <div className="row-sub">{client.email || 'No email yet: add it on their profile so you can email the invoice'}</div>
+          </div>
+          <button type="button" className="btn small" onClick={() => setMode('pick')}>Change</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="field">
+      <label>Client (who pays you) *</label>
+      <div className="segmented" style={{ marginBottom: 10 }}>
+        <button type="button" className={mode === 'pick' ? 'active' : ''} onClick={() => setMode('pick')}><Search size={16} /> Your clients</button>
+        <button type="button" className={mode === 'new' ? 'active' : ''} onClick={() => setMode('new')}><UserPlus size={16} /> New client</button>
+      </div>
+      {mode === 'new'
+        ? <NewClientForm cta="Add client" onCreated={choose} />
+        : <div className="client-pick-list"><ClientPicker onPick={(c) => choose(c.id)} /></div>}
+      {client && <button type="button" className="btn small" style={{ marginTop: 8 }} onClick={() => setMode(null)}>Keep {client.name}</button>}
+    </div>
+  );
+}
 
 export default function BookingEdit() {
   const { id } = useParams();
@@ -16,6 +54,7 @@ export default function BookingEdit() {
   const [busy, setBusy] = useState(false);
   const [params] = useSearchParams();
   const [kind, setKind] = useState(params.get('kind') === 'club' ? 'club' : 'party');
+  const [client, setClient] = useState(null);
   const club = kind === 'club';
 
   const fromClient = params.get('client');
@@ -28,6 +67,7 @@ export default function BookingEdit() {
     if (id) {
       api(`/bookings/${id}`).then((b) => {
         setKind(b.kind || 'party');
+        if (b.client_id) setClient({ id: b.client_id, name: b.client_name, email: b.client_email, phone: b.client_phone });
         setV({ ...Object.fromEntries(FIELDS.map((k) => [k, b[k] ?? ''])), budget: fromPence(b.budget_pence) });
       });
     }
@@ -58,7 +98,14 @@ export default function BookingEdit() {
     setError('');
     const body = { ...Object.fromEntries(FIELDS.map((k) => [k, v[k] ?? ''])), budget_pence: toPence(v.budget) };
     if (club) {
-      if (!body.client_name) body.client_name = body.venue_name;
+      if (!client) {
+        setError('Choose who pays you, or add them as a new client');
+        setBusy(false);
+        return;
+      }
+      // Their name and contact details come from the client profile.
+      for (const k of ['client_name', 'client_email', 'client_phone']) delete body[k];
+      body.client_id = client.id;
       if (!id) Object.assign(body, { kind: 'club', price_pence: toPence(v.fee) ?? 0 });
     }
     try {
@@ -89,10 +136,12 @@ export default function BookingEdit() {
         </div>
       )}
       {club ? (
+        <>
+        {!id && <p className="lead">Already agreed, so it goes straight into Confirmed. Invoice it after the gig and payment reminders go out as usual.</p>}
+        {/* Its own card (not inside the form below), so adding a client doesn't save the booking. */}
+        <div className="card" style={{ marginBottom: 12 }}><ClientChooser client={client} onChange={setClient} /></div>
         <form className="card" onSubmit={save}>
-          {!id && <p className="lead">Already agreed, so it goes straight into Confirmed. Invoice it after the gig and payment reminders go out as usual.</p>}
-          {field('venue_name', 'Club or venue *', { required: true, autoFocus: !id })}
-          {field('client_name', 'Who pays you? (promoter or company)', { placeholder: 'Leave blank if it’s the venue' })}
+          {field('venue_name', 'Club or venue *', { required: true })}
           <div className="grid-2">
             {field('event_date', 'Date *', { type: 'date', required: true })}
             {!id && field('fee', 'Fee *', { inputMode: 'decimal', placeholder: '£', required: true })}
@@ -101,13 +150,12 @@ export default function BookingEdit() {
             {field('start_time', 'Set starts', { type: 'time' })}
             {field('end_time', 'Set ends', { type: 'time' })}
           </div>
-          {field('client_email', 'Email for the invoice', { type: 'email' })}
-          {field('client_phone', 'Phone', { type: 'tel' })}
           {field('venue_address', 'Address', { rows: 2 })}
           {field('notes', 'Notes', { rows: 3, placeholder: 'e.g. Warm-up for the headliner, load-in 10pm' })}
           <button className="btn primary block" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
           {error && <div className="msg err">{error}</div>}
         </form>
+        </>
       ) : (
       <form className="card" onSubmit={save}>
         {field('client_name', 'Client name *', { required: true, autoFocus: !id })}

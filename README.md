@@ -190,8 +190,8 @@ gigs played and booked ahead, your average fee, which gig types earn most, your 
 bookings, how far ahead people book, and your best clients. Tap a column for its number, or the table button to see them all.
 
 **How do I add a club set?**
-**Bookings → Add** (or **Add booking** on Home), then tap **Club set**. Enter the club, date, fee and set times
-(and who pays you, if it's a promoter rather than the venue). It goes straight into **Confirmed**, marked **Club**.
+**Bookings → Add** (or **Add booking** on Home), then tap **Club set**. Choose the client who pays you (the promoter
+or venue) from your clients, or tap **New client** to add them. Then enter the club, date, fee and set times. It goes straight into **Confirmed**, marked **Club**.
 After the gig, tap **Create invoice** (or **Send the invoice** on the after-gig screen). It's due on your normal payment
 terms, and the usual payment reminders chase it. The public enquiry form is unchanged and is only for private parties.
 

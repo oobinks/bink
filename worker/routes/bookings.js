@@ -45,14 +45,25 @@ app.get('/calendar', async (c) => {
   return c.json(rows.map(withTotal));
 });
 
+// A client picked from your list: the booking takes their name and contact details.
+async function pickedClient(db, input) {
+  if (input.client_id === undefined || input.client_id === null || input.client_id === '') return null;
+  const client = await db.prepare('SELECT id, name, email, phone FROM clients WHERE id = ?').bind(Number(input.client_id)).first();
+  if (!client) throw new Error('Client not found');
+  Object.assign(input, { client_name: client.name, client_email: client.email, client_phone: client.phone });
+  return client.id;
+}
+
 // Add a booking by hand: a private party enquiry, or a club set (already agreed, so it starts confirmed with its fee).
 app.post('/', async (c) => {
   const db = c.env.DB;
   const input = (await c.req.json().catch(() => null)) || {};
   const club = input.kind === 'club';
-  if (club && !input.client_name) input.client_name = input.venue_name;
   let b;
+  let clientId;
   try {
+    clientId = await pickedClient(db, input);
+    if (club && !input.client_name) input.client_name = input.venue_name;
     b = cleanBooking(input);
   } catch (err) {
     return c.json({ error: club && !input.venue_name ? 'Add the club or venue' : err.message }, 400);
@@ -65,7 +76,7 @@ app.post('/', async (c) => {
     Object.assign(b, { kind: 'club', price_pence: fee, deposit_pence: 0, event_type: b.event_type || 'Club set' });
     status = 'confirmed';
   }
-  b.client_id = await linkClient(db, { name: b.client_name, email: b.client_email, phone: b.client_phone, instagram: b.instagram });
+  b.client_id = clientId ?? await linkClient(db, { name: b.client_name, email: b.client_email, phone: b.client_phone, instagram: b.instagram });
   const ts = now();
   const cols = Object.keys(b);
   const res = await db.prepare(`INSERT INTO bookings (${cols.join(', ')}, status, source, seen_at, created_at, updated_at)
@@ -102,7 +113,10 @@ app.patch('/:id{[0-9]+}', async (c) => {
   if (!b) return c.json({ error: 'Booking not found' }, 404);
   let changes;
   try {
-    changes = cleanBooking((await c.req.json().catch(() => null)) || {}, { partial: true });
+    const input = (await c.req.json().catch(() => null)) || {};
+    const clientId = await pickedClient(db, input);
+    changes = cleanBooking(input, { partial: true });
+    if (clientId) changes.client_id = clientId;
   } catch (err) {
     return c.json({ error: err.message }, 400);
   }
