@@ -42,7 +42,7 @@ export default function Landing({ preview = false }) {
         )}
 
         <nav className="landing-links">
-          <Link className="btn primary block" to="/book"><PartyPopper size={18} /> Private party booking enquiry</Link>
+          <Link className="btn primary block" to="/book"><PartyPopper size={18} /> Private Party Booking Enquiry</Link>
           {h.pressLive && <Link className="btn block" to="/epk"><Newspaper size={18} /> Press pack</Link>}
           {h.email && <a className="btn block" href={`mailto:${h.email}`}><Mail size={18} /> Contact</a>}
         </nav>
