@@ -539,3 +539,9 @@ details.step[open] { padding-bottom: 4px; }
   padding: calc(var(--safe-t) + 10px) 16px 10px; background: rgba(11, 10, 16, 0.85); border-bottom: 1px solid var(--line); }
 .chosen-client { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--line); }
 .client-pick-list { max-height: 320px; overflow-y: auto; border-radius: var(--radius); }
+
+/* Trends */
+.row.trend { align-items: flex-start; }
+.row.trend .alert-icon { margin-top: 2px; }
+.trend-title { font-weight: 650; }
+.trend-detail { color: var(--muted); font-size: 14px; margin-top: 2px; line-height: 1.45; }

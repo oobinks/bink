@@ -95,6 +95,14 @@ test('analytics: locked, and works for each period', async () => {
   }
 });
 
+test('trends: locked, and returns notes', async () => {
+  assert.equal((await fetch(base + '/api/trends')).status, 401);
+  const { status, body } = await call('GET', '/api/trends');
+  assert.equal(status, 200);
+  assert.ok(Array.isArray(body.trends));
+  for (const t of body.trends) assert.ok(t.id && t.title && t.detail && ['up', 'down', 'steady', 'idea'].includes(t.tone));
+});
+
 test('sample data can be removed in one go', async () => {
   assert.equal((await call('POST', '/api/settings/sample-data', { action: 'clear' })).body.hasSampleData, false);
   assert.equal((await call('GET', '/api/dashboard')).body.upcomingGigs.length, 0);

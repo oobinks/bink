@@ -195,6 +195,12 @@ or venue) from your clients, or tap **New client** to add them. Then enter the c
 After the gig, tap **Create invoice** (or **Send the invoice** on the after-gig screen). It's due on your normal payment
 terms, and the usual payment reminders chase it. The public enquiry form is unchanged and is only for private parties.
 
+**What are Trends?**
+**More → Trends**: plain-English notes on what's changing, worked out from your own data each time you open it.
+For example: income, gigs and enquiries against the previous 3 months, your average fee, how many enquiries book,
+what earns you most, your busiest night, quiet months coming up, clients who booked this time last year, how quickly
+clients pay, and when you've gone quiet on posting clips. A note only appears once there's enough data behind it.
+
 **How do client profiles work?**
 Everyone you quote, play for or invoice gets a profile automatically, matched by email or name. Open one from
 **Invoices → Clients** (or **More → Clients**) to see their gigs, invoices, what they've paid and what they owe.
