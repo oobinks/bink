@@ -12,7 +12,7 @@ const TIME = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_FILE_BYTES = 4 * 1000 ** 3;
 
 const COLS = `c.id, c.booking_id, c.file_name, c.status, c.caption, c.hashtags, c.scheduled_at, c.posted_at, c.reminded_at,
-  c.size_bytes, c.content_type, c.is_sample, c.created_at, c.in_press, (c.r2_key IS NOT NULL) AS has_file,
+  c.size_bytes, c.content_type, c.is_sample, c.created_at, c.in_press, c.press_star, (c.r2_key IS NOT NULL) AS has_file,
   b.venue_name, b.client_name, b.event_date, b.event_type`;
 const FROM = 'FROM clips c LEFT JOIN bookings b ON b.id = c.booking_id';
 
@@ -165,6 +165,7 @@ app.patch('/:id{[0-9]+}', async (c) => {
     }
     set.reminded_at = null;
   }
+  if ('press_star' in input) set.press_star = input.press_star ? 1 : 0;
   if ('in_press' in input) {
     set.in_press = input.in_press ? 1 : 0;
     if (set.in_press && !clip.in_press) {
@@ -207,7 +208,7 @@ app.get('/press', async (c) => {
   const db = c.env.DB;
   const [items, others, venues] = await Promise.all([
     all(db.prepare(`SELECT ${COLS} ${FROM} WHERE c.in_press = 1 AND c.r2_key IS NOT NULL AND c.status != 'uploading'
-      ORDER BY c.press_order, c.id`)),
+      ORDER BY c.press_star DESC, c.press_order, c.id`)),
     all(db.prepare(`SELECT ${COLS} ${FROM} WHERE c.in_press = 0 AND c.r2_key IS NOT NULL AND c.status != 'uploading'
       ORDER BY CASE c.status WHEN 'new' THEN 1 ELSE 0 END, c.id DESC LIMIT 200`)),
     all(db.prepare(`SELECT venue_name, MAX(event_date) AS last FROM bookings

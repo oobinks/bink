@@ -91,7 +91,7 @@ app.get('/press', async (c) => {
   if (!press.live) return c.json({ error: 'This press pack is not available right now.' }, 404);
   const business = await getSetting(db, 'business');
   const media = await all(db.prepare(`SELECT id, file_name, content_type, size_bytes FROM clips
-    WHERE in_press = 1 AND r2_key IS NOT NULL AND status != 'uploading' ORDER BY press_order, id`));
+    WHERE in_press = 1 AND r2_key IS NOT NULL AND status != 'uploading' ORDER BY press_star DESC, press_order, id`));
   return c.json({
     djName: business.djName,
     tagline: press.tagline,

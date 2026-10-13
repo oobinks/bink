@@ -190,6 +190,10 @@ const migrations = [
     `ALTER TABLE clips ADD COLUMN in_press INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE clips ADD COLUMN press_order INTEGER NOT NULL DEFAULT 0`,
   ],
+  [
+    // Starred press pack items show first.
+    `ALTER TABLE clips ADD COLUMN press_star INTEGER NOT NULL DEFAULT 0`,
+  ],
 ];
 
 let ready = false;

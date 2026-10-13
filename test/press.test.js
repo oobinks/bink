@@ -69,6 +69,10 @@ test('photos uploaded from the press pack go straight on it; other clips can be 
   await call('POST', '/api/clips/press/order', { ids: [video, photo] });
   assert.deepEqual((await call('GET', '/api/clips/press')).body.items.map((c) => c.id), [video, photo]);
   assert.ok((await call('GET', '/api/settings/activity')).body.some((a) => a.action === 'Added to press pack'));
+  // Starred items jump to the top, whatever the order.
+  await call('PATCH', `/api/clips/${photo}`, { press_star: true });
+  assert.deepEqual((await call('GET', '/api/clips/press')).body.items.map((c) => c.id), [photo, video]);
+  await call('PATCH', `/api/clips/${photo}`, { press_star: false });
 });
 
 test('switched on, the public page shows your details and only the chosen media', async () => {
@@ -93,6 +97,8 @@ test('switched on, the public page shows your details and only the chosen media'
   assert.equal((await anon(`/api/public/press/media/${privateClip}`)).status, 404, "clips you didn't choose stay private");
   assert.equal((await anon(`/api/clips/${privateClip}/file`)).status, 401);
 
+  await call('PATCH', `/api/clips/${photo}`, { press_star: true });
+  assert.deepEqual((await (await anon('/api/public/press')).json()).media.map((m) => m.id), [photo, video], 'starred first');
   await call('PUT', '/api/settings/press', { showPhone: true });
   assert.equal((await (await anon('/api/public/press')).json()).phone, '07818543677');
 });

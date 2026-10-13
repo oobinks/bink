@@ -1,7 +1,7 @@
 // Press pack editor (/press): switch the public page on, pick photos and clips, write the bio and rider.
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, Plus, X, ChevronLeft, ChevronRight, Copy, Share2, ExternalLink, Clapperboard, Image as ImageIcon } from 'lucide-react';
+import { Upload, Plus, X, ChevronLeft, ChevronRight, Copy, Share2, ExternalLink, Clapperboard, Image as ImageIcon, Star } from 'lucide-react';
 import { api } from '../api.js';
 import { shareOrCopy } from '../share.js';
 import { uploadClip, keepAwake } from '../clipUpload.js';
@@ -40,6 +40,10 @@ function MediaPicker() {
     setData((d) => ({ ...d, items: ids.map((id) => d.items.find((c) => c.id === id)) }));
     await api('/clips/press/order', { method: 'POST', body: { ids } }).catch((e) => setError(e.message));
   };
+  const star = async (clip) => {
+    await api(`/clips/${clip.id}`, { method: 'PATCH', body: { press_star: !clip.press_star } }).catch((e) => setError(e.message));
+    load();
+  };
   const toggle = async (clip, on) => {
     await api(`/clips/${clip.id}`, { method: 'PATCH', body: { in_press: on } }).catch((e) => setError(e.message));
     load();
@@ -71,6 +75,9 @@ function MediaPicker() {
         <div className="press-grid">
           {items.map((c, i) => (
             <Tile key={c.id} clip={c}>
+              <button className={`press-star${c.press_star ? ' on' : ''}`} aria-label={c.press_star ? 'Unstar' : 'Star: show first'} onClick={() => star(c)}>
+                <Star size={16} fill={c.press_star ? 'currentColor' : 'none'} />
+              </button>
               <div className="press-tools">
                 <button aria-label="Move earlier" disabled={i === 0} onClick={() => move(i, -1)}><ChevronLeft size={16} /></button>
                 <button aria-label="Remove from press pack" onClick={() => toggle(c, false)}><X size={16} /></button>
@@ -80,7 +87,7 @@ function MediaPicker() {
           ))}
         </div>
       ) : <div className="card empty">Nothing yet. Upload your best press photos, or add clips from your gigs.</div>}
-      <p className="hint" style={{ marginTop: 8 }}>The first photo is the big picture at the top. Use the arrows to reorder.</p>
+      <p className="hint" style={{ marginTop: 8 }}>Starred ones show first. The first photo is the big picture at the top. Use the arrows to reorder.</p>
 
       <input ref={input} type="file" accept="image/*,video/*" multiple hidden onChange={pick} />
       <div className="btn-row" style={{ marginTop: 10 }}>
