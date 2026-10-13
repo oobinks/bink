@@ -1,11 +1,13 @@
 // The public landing page at your main address (shown when you're not logged in). Kept minimal on purpose.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PartyPopper, Newspaper, Mail } from 'lucide-react';
+import { PartyPopper, Newspaper, Mail, ArrowLeft, Share2 } from 'lucide-react';
+import { shareOrCopy } from '../share.js';
 import { LINKS, linkFor } from './PressPage.jsx';
 
-export default function Landing() {
+export default function Landing({ preview = false }) {
   const [h, setH] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetch('/api/public/home').then((r) => r.json()).then((d) => {
@@ -18,6 +20,14 @@ export default function Landing() {
   const links = LINKS.filter(([k]) => h.links?.[k]);
   return (
     <div className="landing" style={h.coverId ? { backgroundImage: `linear-gradient(180deg, rgba(11,10,16,0.35), rgba(11,10,16,0.92) 70%), url(/api/public/press/media/${h.coverId})` } : undefined}>
+      {preview && (
+        <div className="landing-preview">
+          <Link to="/more" className="btn small"><ArrowLeft size={16} /> Back to the app</Link>
+          <button className="btn small" onClick={async () => {
+            if ((await shareOrCopy({ title: h.djName, url: window.location.origin })) === 'copied') { setCopied(true); setTimeout(() => setCopied(false), 2000); }
+          }}><Share2 size={16} /> {copied ? 'Link copied' : 'Share'}</button>
+        </div>
+      )}
       <main className="landing-box">
         <div className="wordmark"><span>{h.djName || 'DJ'}</span></div>
         {h.tagline && <p className="landing-tagline">{h.tagline}</p>}
@@ -38,7 +48,7 @@ export default function Landing() {
         </nav>
         {h.phone && <p className="landing-phone">or call <a href={`tel:${h.phone.replace(/\s+/g, '')}`}>{h.phone}</a></p>}
       </main>
-      <footer className="landing-foot"><Link to="/login">DJ login</Link></footer>
+      <footer className="landing-foot">{!preview && <Link to="/login">DJ login</Link>}</footer>
     </div>
   );
 }

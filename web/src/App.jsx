@@ -104,6 +104,8 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Your public landing page, as visitors see it, with a bar to get back. */}
+      <Route path="landing" element={<Landing preview />} />
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="bookings" element={<Bookings />} />

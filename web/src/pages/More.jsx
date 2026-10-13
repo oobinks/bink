@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Settings, Newspaper, LogOut, ChevronRight, History, Sparkles, Users, BarChart3 } from 'lucide-react';
+import { Settings, Newspaper, LogOut, ChevronRight, History, Sparkles, Users, BarChart3, Globe } from 'lucide-react';
 import { api } from '../api.js';
 
 export default function More() {
@@ -11,6 +11,11 @@ export default function More() {
     <>
       <div className="page-head"><h1>More</h1></div>
       <div className="list">
+        <Link to="/landing" className="row">
+          <div className="alert-icon pink"><Globe size={20} /></div>
+          <div className="row-main"><div className="row-title">Your landing page</div><div className="row-sub">What visitors see at your web address</div></div>
+          <ChevronRight size={18} color="var(--faint)" />
+        </Link>
         <Link to="/clients" className="row">
           <div className="alert-icon gold"><Users size={20} /></div>
           <div className="row-main"><div className="row-title">Clients</div><div className="row-sub">Everyone you've worked for</div></div>

@@ -529,3 +529,5 @@ details.step[open] { padding-bottom: 4px; }
 .landing-phone a { color: var(--gold); }
 .landing-foot { margin-top: auto; padding-top: 32px; font-size: 12px; }
 .landing-foot a { color: var(--faint); }
+.landing-preview { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; gap: 10px;
+  padding: calc(var(--safe-t) + 10px) 16px 10px; background: rgba(11, 10, 16, 0.85); border-bottom: 1px solid var(--line); }
