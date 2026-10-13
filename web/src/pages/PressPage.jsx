@@ -103,7 +103,7 @@ export default function PressPage() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
       setP(data);
-      document.title = `${data.djName} · Press pack`;
+      document.title = `${data.djName} · Press Pack`;
     }).catch((e) => setError(e.message || "Can't load the press pack."));
   }, []);
 
@@ -151,7 +151,7 @@ export default function PressPage() {
   return (
     <div className={`public epk${selecting ? ' selecting' : ''}`}>
       <header className="epk-hero" style={cover ? { backgroundImage: `linear-gradient(180deg, rgba(11,10,16,0.15), var(--bg)), url(${mediaUrl(cover)})` } : undefined}>
-        <div className="eyebrow">Press pack</div>
+        <div className="eyebrow">Press Pack</div>
         <div className="wordmark"><span>{p.djName}</span></div>
         {p.tagline && <p className="epk-tagline">{p.tagline}</p>}
         {p.basedIn && <p className="row-sub"><MapPin size={13} /> {p.basedIn}</p>}
