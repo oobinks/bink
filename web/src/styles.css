@@ -19,8 +19,10 @@
   --red-soft: rgba(255, 107, 107, 0.14);
   --radius: 16px;
   --radius-sm: 10px;
-  --nav-h: 64px;
+  --nav-h: 58px;
   --safe-b: env(safe-area-inset-bottom, 0px);
+  /* Space under the tab icons: the icons sit a little into the iPhone's home-bar area, like Apple's own apps. */
+  --nav-pad-b: max(6px, calc(var(--safe-b) - 16px));
   --safe-t: env(safe-area-inset-top, 0px);
   color-scheme: dark;
 }
@@ -45,7 +47,7 @@ h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
 .main {
   max-width: 760px;
   margin: 0 auto;
-  padding: calc(var(--safe-t) + 20px) 16px calc(var(--nav-h) + var(--safe-b) + 24px);
+  padding: calc(var(--safe-t) + 20px) 16px calc(var(--nav-h) + var(--nav-pad-b) + 24px);
 }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .page-head h1 { font-size: 28px; font-weight: 800; }
@@ -55,8 +57,8 @@ h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
 .tabbar {
   position: fixed; inset: auto 0 0 0; z-index: 20;
   display: grid; grid-template-columns: repeat(5, 1fr);
-  height: calc(var(--nav-h) + var(--safe-b));
-  padding-bottom: var(--safe-b);
+  height: calc(var(--nav-h) + var(--nav-pad-b));
+  padding-bottom: var(--nav-pad-b);
   background: rgba(11, 10, 16, 0.86);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   border-top: 1px solid var(--line);
@@ -386,7 +388,7 @@ details.step[open] { padding-bottom: 4px; }
 .icon-btn:disabled { opacity: 0.3; }
 .q-body { padding: 4px 12px 12px; border-top: 1px solid var(--line); }
 .q-body .field:first-child { margin-top: 10px; }
-.save-bar { position: sticky; bottom: calc(var(--nav-h) + var(--safe-b) + 8px); margin-top: 14px; }
+.save-bar { position: sticky; bottom: calc(var(--nav-h) + var(--nav-pad-b) + 8px); margin-top: 14px; }
 @media (min-width: 900px) { .save-bar { bottom: 16px; } }
 
 /* After the gig */
