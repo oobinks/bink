@@ -84,6 +84,17 @@ test('backups save and can be downloaded; export has every table', async () => {
   assert.deepEqual(Object.keys(exp.tables).sort(), ['activity', 'bookings', 'clients', 'clips', 'invoices']);
 });
 
+test('analytics: locked, and works for each period', async () => {
+  assert.equal((await fetch(base + '/api/analytics')).status, 401);
+  for (const period of ['12m', 'tax', 'all']) {
+    const { status, body } = await call('GET', `/api/analytics?period=${period}`);
+    assert.equal(status, 200);
+    assert.equal(body.period, period);
+    assert.ok(body.incomePence > 0, 'sample income shows');
+    assert.ok(body.funnel.enquiries > 0);
+  }
+});
+
 test('sample data can be removed in one go', async () => {
   assert.equal((await call('POST', '/api/settings/sample-data', { action: 'clear' })).body.hasSampleData, false);
   assert.equal((await call('GET', '/api/dashboard')).body.upcomingGigs.length, 0);

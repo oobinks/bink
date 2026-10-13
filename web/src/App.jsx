@@ -19,6 +19,7 @@ import ClientDetail from './pages/ClientDetail.jsx';
 import AfterGig from './pages/AfterGig.jsx';
 import Content from './pages/Content.jsx';
 import Press from './pages/Press.jsx';
+import Analytics from './pages/Analytics.jsx';
 
 function Gate({ title, children }) {
   return (
@@ -110,6 +111,7 @@ export default function App() {
         <Route path="after/:id" element={<AfterGig />} />
         <Route path="invoices/:id" element={<InvoiceDetail />} />
         <Route path="press" element={<Press />} />
+        <Route path="analytics" element={<Analytics />} />
         <Route path="content/*" element={<Content />} />
         <Route path="more" element={<More />} />
         <Route path="settings" element={<Settings />} />

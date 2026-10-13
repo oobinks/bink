@@ -14,6 +14,7 @@ import invoices from './routes/invoices.js';
 import clients from './routes/clients.js';
 import afterGig, { afterGigNudges } from './routes/after-gig.js';
 import clips, { cleanStaleUploads } from './routes/clips.js';
+import analytics from './routes/analytics.js';
 import { clipReminders } from './content.js';
 import { runReminders } from './reminders.js';
 import { emailReady, senderAddress } from './mail.js';
@@ -61,6 +62,7 @@ app.route('/api/invoices', invoices);
 app.route('/api/clients', clients);
 app.route('/api/after-gig', afterGig);
 app.route('/api/clips', clips);
+app.route('/api/analytics', analytics);
 app.get('/api/email-status', async (c) => c.json({ ready: emailReady(c.env), from: await senderAddress(c.env) }));
 
 // Phone notifications.

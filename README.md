@@ -178,6 +178,11 @@ Open **More → Press pack**:
 
 You can also add any clip from its own screen with **Add to press pack**. Binning a clip takes it off the press pack too.
 
+**Where are my stats?**
+**More → Analytics.** Pick **Last 12 months**, **Tax year** or **All time** to see income (paid invoices and deposits),
+gigs played and booked ahead, your average fee, which gig types earn most, your busiest days, how many enquiries turn into
+bookings, how far ahead people book, and your best clients. Tap a column for its number, or the table button to see them all.
+
 **How do client profiles work?**
 Everyone you quote, play for or invoice gets a profile automatically, matched by email or name. Open one from
 **Invoices → Clients** (or **More → Clients**) to see their gigs, invoices, what they've paid and what they owe.
