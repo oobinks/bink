@@ -68,12 +68,26 @@ export default function AfterGig() {
               {b.total_pence ? <>Balance due: <b style={{ color: 'var(--text)' }}>{money(balance)}</b>{deposit ? ` (after the ${money(deposit)} deposit)` : ''}.</> : 'No price on this booking yet.'}
               {inv && ` Invoice ${inv.number} is ${inv.status === 'draft' ? 'a draft' : 'sent'}.`}
             </p>
-            <button className="btn primary block" disabled={!!busy} onClick={paidOnNight}>
-              <Check size={18} /> {busy === 'night' ? 'Saving…' : 'Balance paid on the night'}
-            </button>
-            {inv
-              ? <Link className="btn block" style={{ marginTop: 8 }} to={`/invoices/${inv.id}`}><Receipt size={18} /> Open invoice {inv.number}</Link>
-              : <button className="btn block" style={{ marginTop: 8 }} disabled={!!busy} onClick={sendInvoice}><Receipt size={18} /> They still owe me: send invoice</button>}
+            {b.kind === 'club' ? (
+              // Club sets: normally invoiced after the night.
+              <>
+                {inv
+                  ? <Link className="btn primary block" to={`/invoices/${inv.id}`}><Receipt size={18} /> Open invoice {inv.number}</Link>
+                  : <button className="btn primary block" disabled={!!busy} onClick={sendInvoice}><Receipt size={18} /> Send the invoice</button>}
+                <button className="btn block" style={{ marginTop: 8 }} disabled={!!busy} onClick={paidOnNight}>
+                  <Check size={18} /> {busy === 'night' ? 'Saving…' : 'Paid on the night'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="btn primary block" disabled={!!busy} onClick={paidOnNight}>
+                  <Check size={18} /> {busy === 'night' ? 'Saving…' : 'Balance paid on the night'}
+                </button>
+                {inv
+                  ? <Link className="btn block" style={{ marginTop: 8 }} to={`/invoices/${inv.id}`}><Receipt size={18} /> Open invoice {inv.number}</Link>
+                  : <button className="btn block" style={{ marginTop: 8 }} disabled={!!busy} onClick={sendInvoice}><Receipt size={18} /> They still owe me: send invoice</button>}
+              </>
+            )}
           </>
         )}
       </div>

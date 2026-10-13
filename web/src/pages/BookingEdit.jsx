@@ -1,7 +1,7 @@
-// Add an enquiry by hand (e.g. someone rang you), or edit a booking's details.
+// Add a booking by hand: a private party enquiry (e.g. someone rang you) or a club set; or edit a booking's details.
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, PartyPopper, Disc3 } from 'lucide-react';
 import { api } from '../api.js';
 import { fromPence, toPence } from '../format.js';
 
@@ -14,8 +14,10 @@ export default function BookingEdit() {
   const [v, setV] = useState(id ? null : {});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
   const [params] = useSearchParams();
+  const [kind, setKind] = useState(params.get('kind') === 'club' ? 'club' : 'party');
+  const club = kind === 'club';
+
   const fromClient = params.get('client');
   useEffect(() => {
     if (!id && fromClient) {
@@ -23,7 +25,12 @@ export default function BookingEdit() {
         ...o, client_name: c.name, client_email: c.email || '', client_phone: c.phone || '', instagram: c.instagram || '',
       }))).catch(() => {});
     }
-    if (id) api(`/bookings/${id}`).then((b) => setV({ ...Object.fromEntries(FIELDS.map((k) => [k, b[k] ?? ''])), budget: fromPence(b.budget_pence) }));
+    if (id) {
+      api(`/bookings/${id}`).then((b) => {
+        setKind(b.kind || 'party');
+        setV({ ...Object.fromEntries(FIELDS.map((k) => [k, b[k] ?? ''])), budget: fromPence(b.budget_pence) });
+      });
+    }
   }, [id, fromClient]);
 
   const set = (k) => (e) => setV((o) => ({ ...o, [k]: e.target.value }));
@@ -50,6 +57,10 @@ export default function BookingEdit() {
     setBusy(true);
     setError('');
     const body = { ...Object.fromEntries(FIELDS.map((k) => [k, v[k] ?? ''])), budget_pence: toPence(v.budget) };
+    if (club) {
+      if (!body.client_name) body.client_name = body.venue_name;
+      if (!id) Object.assign(body, { kind: 'club', price_pence: toPence(v.fee) ?? 0 });
+    }
     try {
       if (id) {
         await api(`/bookings/${id}`, { method: 'PATCH', body });
@@ -69,8 +80,35 @@ export default function BookingEdit() {
     <>
       <div className="chat-head" style={{ marginBottom: 14 }}>
         <Link to={id ? `/bookings/${id}` : '/bookings'} className="icon-btn" aria-label="Back"><ArrowLeft size={20} /></Link>
-        <h1 style={{ fontSize: 24 }}>{id ? 'Edit booking' : 'Add enquiry'}</h1>
+        <h1 style={{ fontSize: 24 }}>{id ? 'Edit booking' : 'Add booking'}</h1>
       </div>
+      {!id && (
+        <div className="segmented">
+          <button type="button" className={club ? '' : 'active'} onClick={() => setKind('party')}><PartyPopper size={16} /> Private party</button>
+          <button type="button" className={club ? 'active' : ''} onClick={() => setKind('club')}><Disc3 size={16} /> Club set</button>
+        </div>
+      )}
+      {club ? (
+        <form className="card" onSubmit={save}>
+          {!id && <p className="lead">Already agreed, so it goes straight into Confirmed. Invoice it after the gig and payment reminders go out as usual.</p>}
+          {field('venue_name', 'Club or venue *', { required: true, autoFocus: !id })}
+          {field('client_name', 'Who pays you? (promoter or company)', { placeholder: 'Leave blank if it’s the venue' })}
+          <div className="grid-2">
+            {field('event_date', 'Date *', { type: 'date', required: true })}
+            {!id && field('fee', 'Fee *', { inputMode: 'decimal', placeholder: '£', required: true })}
+          </div>
+          <div className="grid-2">
+            {field('start_time', 'Set starts', { type: 'time' })}
+            {field('end_time', 'Set ends', { type: 'time' })}
+          </div>
+          {field('client_email', 'Email for the invoice', { type: 'email' })}
+          {field('client_phone', 'Phone', { type: 'tel' })}
+          {field('venue_address', 'Address', { rows: 2 })}
+          {field('notes', 'Notes', { rows: 3, placeholder: 'e.g. Warm-up for the headliner, load-in 10pm' })}
+          <button className="btn primary block" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
+          {error && <div className="msg err">{error}</div>}
+        </form>
+      ) : (
       <form className="card" onSubmit={save}>
         {field('client_name', 'Client name *', { required: true, autoFocus: !id })}
         {field('event_type', 'Occasion', { placeholder: 'e.g. 30th birthday' })}
@@ -94,6 +132,7 @@ export default function BookingEdit() {
         <button className="btn primary block" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
         {error && <div className="msg err">{error}</div>}
       </form>
+      )}
     </>
   );
 }

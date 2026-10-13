@@ -194,6 +194,10 @@ const migrations = [
     // Starred press pack items show first.
     `ALTER TABLE clips ADD COLUMN press_star INTEGER NOT NULL DEFAULT 0`,
   ],
+  [
+    // Booking type: 'party' (private party, via enquiry and quote) or 'club' (a club set, agreed direct, invoiced after).
+    `ALTER TABLE bookings ADD COLUMN kind TEXT NOT NULL DEFAULT 'party'`,
+  ],
 ];
 
 let ready = false;

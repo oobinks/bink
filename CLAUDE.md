@@ -30,6 +30,8 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
   `reminders.js` morning payment reminders, `mail.js` Gmail sending, `clients.js` find-or-create client profiles
   (bookings and invoices carry a `client_id`; use `linkClient()` when creating them), `form-fields.js` the
   editable booking form (core questions map to booking columns; custom answers go in `bookings.answers`),
+  bookings have a `kind`: 'party' (enquiry → quote → deposit) or 'club' (added by hand, starts confirmed with its fee, no
+  deposit, invoiced on normal payment terms),
   `routes/after-gig.js` the morning-after wrap-up (`wrapped_at`, `gig_notes`, balance paid on the night),
   `routes/clips.js` + `content.js` the content hub (clip files in the R2 bucket `CLIPS`, uploaded in 20MB pieces through
   the Worker; statuses uploading → new → starred → scheduled → posted; hourly `0 * * * *` cron sends "time to post" pushes;

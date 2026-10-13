@@ -149,6 +149,31 @@ test('the invoice takes off the deposit and the balance is due on the night', as
   await call('DELETE', `/api/invoices/${invId}`);
 });
 
+test('a club set added by hand starts confirmed with its fee, and invoices on normal payment terms', async () => {
+  assert.equal((await call('POST', '/api/bookings', { kind: 'club', event_date: future(10), price_pence: 25000 })).status, 400, 'needs the venue');
+  assert.equal((await call('POST', '/api/bookings', { kind: 'club', venue_name: 'Neon Rooms', price_pence: 25000 })).status, 400, 'needs the date');
+  const r = await call('POST', '/api/bookings', { kind: 'club', venue_name: 'Neon Rooms', event_date: future(10),
+    start_time: '23:00', end_time: '01:00', price_pence: 25000, client_email: 'promoter@example.com' });
+  assert.equal(r.status, 200);
+  const b = (await call('GET', `/api/bookings/${r.body.id}`)).body;
+  assert.deepEqual([b.kind, b.status, b.client_name, b.event_type, b.total_pence, b.deposit_pence], ['club', 'confirmed', 'Neon Rooms', 'Club set', 25000, 0]);
+  assert.ok((await call('GET', '/api/bookings?status=confirmed')).body.bookings.some((x) => x.id === b.id && x.kind === 'club'));
+  const { id: invId } = (await call('POST', `/api/invoices/from-booking/${b.id}`)).body;
+  const inv = (await call('GET', `/api/invoices/${invId}`)).body;
+  assert.equal(inv.total_pence, 25000);
+  assert.match(inv.items[0].description, /^DJ set: Club set at Neon Rooms/);
+  assert.notEqual(inv.notes, 'Balance payable on the night.');
+  assert.notEqual(inv.due_date, b.event_date, 'due on payment terms, not on the night');
+  const history = (await call('GET', '/api/settings/activity')).body;
+  assert.ok(history.some((h) => h.action === 'Club set added'));
+  await call('DELETE', `/api/invoices/${invId}`);
+  await call('DELETE', `/api/bookings/${b.id}`);
+  // The public form can't create club sets.
+  await call('POST', '/api/public/enquiry', { ...enquiry, client_name: 'Sneaky', kind: 'club' }, { auth: false, ip: '10.0.0.9' });
+  const sneaky = (await call('GET', '/api/bookings?status=new')).body.bookings.find((x) => x.client_name === 'Sneaky');
+  if (sneaky) assert.equal(sneaky.kind, 'party');
+});
+
 test('the deposit can be changed per quote, but not above the total', async () => {
   assert.equal((await call('PUT', `/api/bookings/${id}/quote`, { price_pence: 35000, extras: [], deposit_pence: 50000 })).status, 400);
   const ok = await call('PUT', `/api/bookings/${id}/quote`, { price_pence: 35000, extras: [{ label: 'Speakers, lights & DJ booth', pence: 10000 }, { label: 'Travel (32 miles)', pence: 540 }], deposit_pence: 10000 });

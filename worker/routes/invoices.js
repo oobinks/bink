@@ -150,8 +150,9 @@ export async function invoiceFromBooking(db, bookingId) {
   if (existing) return { id: existing.id, existing: true };
   const when = b.event_date ? new Date(b.event_date + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
   const what = [b.event_type || 'DJ performance', b.venue_name && `at ${b.venue_name}`, when && `(${when})`].filter(Boolean).join(' ');
+  const club = b.kind === 'club';
   const items = [
-    { description: `DJ performance: ${what}`, pence: b.price_pence || 0 },
+    { description: `${club ? 'DJ set' : 'DJ performance'}: ${what}`, pence: b.price_pence || 0 },
     ...JSON.parse(b.extras || '[]').map((e) => ({ description: e.label, pence: e.pence })),
   ];
   // Deposit already paid comes off, and the balance is due on the night.
@@ -161,7 +162,8 @@ export async function invoiceFromBooking(db, bookingId) {
     const paidOn = new Date(b.deposit_paid_at.slice(0, 10) + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
     items.push({ description: `Less deposit paid (${paidOn})`, pence: -b.deposit_pence });
   }
-  if (b.event_date && b.event_date >= todayUK()) {
+  // Club sets are invoiced with your normal payment terms instead.
+  if (!club && b.event_date && b.event_date >= todayUK()) {
     dueDate = b.event_date;
     notes = 'Balance payable on the night.';
   }

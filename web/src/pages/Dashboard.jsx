@@ -64,7 +64,7 @@ export default function Dashboard() {
 
       <div className="quick">
         <button className="btn" onClick={() => shareBookingForm(setCopied)}><Share2 size={18} /> {copied ? 'Link copied' : 'Share booking form'}</button>
-        <Link className="btn" to="/bookings/new"><Plus size={18} /> Add enquiry</Link>
+        <Link className="btn" to="/bookings/new"><Plus size={18} /> Add booking</Link>
       </div>
 
       <div className="section stats">

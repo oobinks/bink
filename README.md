@@ -189,6 +189,12 @@ logged in. On a new device, tap **DJ login** at the bottom.
 gigs played and booked ahead, your average fee, which gig types earn most, your busiest days, how many enquiries turn into
 bookings, how far ahead people book, and your best clients. Tap a column for its number, or the table button to see them all.
 
+**How do I add a club set?**
+**Bookings → Add** (or **Add booking** on Home), then tap **Club set**. Enter the club, date, fee and set times
+(and who pays you, if it's a promoter rather than the venue). It goes straight into **Confirmed**, marked **Club**.
+After the gig, tap **Create invoice** (or **Send the invoice** on the after-gig screen). It's due on your normal payment
+terms, and the usual payment reminders chase it. The public enquiry form is unchanged and is only for private parties.
+
 **How do client profiles work?**
 Everyone you quote, play for or invoice gets a profile automatically, matched by email or name. Open one from
 **Invoices → Clients** (or **More → Clients**) to see their gigs, invoices, what they've paid and what they owe.

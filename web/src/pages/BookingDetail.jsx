@@ -14,7 +14,7 @@ import { copyForTimeTree } from '../timetree.js';
 const EQUIPMENT_LABEL = 'Speakers, lights & DJ booth';
 
 function Fact({ label, children }) {
-  if (children === null || children === undefined || children === '') return null;
+  if (children === null || children === undefined || children === '' || children === false) return null;
   return <div className="kv"><span>{label}</span><span>{children}</span></div>;
 }
 
@@ -188,6 +188,33 @@ function QuoteBuilder({ b, pricing, onSaved }) {
   );
 }
 
+// Club sets: just the agreed fee (no quote, no deposit).
+function FeeCard({ b, onSaved }) {
+  const [fee, setFee] = useState(fromPence(b.price_pence));
+  const [msg, setMsg] = useState(null);
+  const save = async (e) => {
+    e.preventDefault();
+    try {
+      await api(`/bookings/${b.id}/quote`, { method: 'PUT', body: { price_pence: toPence(fee) ?? 0, extras: [], deposit_pence: 0 } });
+      setMsg({ ok: true, text: 'Saved' });
+      onSaved();
+    } catch (err) {
+      setMsg({ ok: false, text: err.message });
+    }
+  };
+  return (
+    <form className="card" onSubmit={save}>
+      <h3>Fee</h3>
+      <div className="extra-row" style={{ marginTop: 8 }}>
+        <input className="input" inputMode="decimal" placeholder="£" value={fee} onChange={(e) => setFee(e.target.value)} aria-label="Fee" />
+        <button className="btn small">Save</button>
+      </div>
+      <p className="hint" style={{ margin: '6px 0 0' }}>After the gig, tap Create invoice. Payment reminders then go out automatically.</p>
+      {msg && <div className={`msg ${msg.ok ? 'ok' : 'err'}`}>{msg.text}</div>}
+    </form>
+  );
+}
+
 function TimeTreeCard({ b }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -270,6 +297,7 @@ export default function BookingDetail() {
   if (error && !b) return <div className="msg err">{error}</div>;
   if (!b || !pricing) return null;
   const s = STATUS_INFO[b.status];
+  const club = b.kind === 'club';
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.venue_name, b.venue_address].filter(Boolean).join(', '))}`;
 
   return (
@@ -277,8 +305,9 @@ export default function BookingDetail() {
       <div className="chat-head" style={{ marginBottom: 14 }}>
         <Link to={`/bookings?tab=${b.status}`} className="icon-btn" aria-label="Back"><ArrowLeft size={20} /></Link>
         <div className="row-main">
-          <div className="row-title" style={{ fontSize: 20 }}>{b.client_name}</div>
+          <div className="row-title" style={{ fontSize: 20 }}>{club ? b.venue_name || b.client_name : b.client_name}</div>
           <span className={`pill ${s.tone}`}>{s.label}</span>
+          {club && <span className="pill violet" style={{ marginLeft: 6 }}>Club set</span>}
           {b.source === 'form' && <span className="row-sub" style={{ marginLeft: 8 }}>via booking form · {timeAgo(b.created_at)}</span>}
         </div>
         <Link to={`/bookings/${b.id}/edit`} className="icon-btn" aria-label="Edit"><Pencil size={18} /></Link>
@@ -308,6 +337,7 @@ export default function BookingDetail() {
         <Fact label="Date">{longDate(b.event_date)}</Fact>
         <Fact label="Time">{b.start_time && `${b.start_time}–${b.end_time || '?'}`}</Fact>
         <Fact label="Venue">{b.venue_name}</Fact>
+        {club && b.client_name !== b.venue_name && <Fact label="Paid by">{b.client_name}</Fact>}
         <Fact label="Address">{b.venue_address && <a href={mapUrl} target="_blank" rel="noreferrer" className="map-link"><MapPin size={13} /> {b.venue_address}</a>}</Fact>
         <Fact label="Guests">{b.guests}</Fact>
         <Fact label="Needs equipment">{b.equipment && b.equipment[0].toUpperCase() + b.equipment.slice(1)}</Fact>
@@ -342,7 +372,7 @@ export default function BookingDetail() {
       )}
 
       <div className="section">
-        <QuoteBuilder b={b} pricing={pricing} onSaved={load} />
+        {club ? <FeeCard b={b} onSaved={load} /> : <QuoteBuilder b={b} pricing={pricing} onSaved={load} />}
       </div>
 
       <div className="section btn-row">

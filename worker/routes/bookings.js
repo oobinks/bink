@@ -6,7 +6,7 @@ import { linkClient } from '../clients.js';
 
 const app = new Hono();
 
-const LIST_COLS = `id, status, source, client_name, event_date, start_time, end_time, venue_name, event_type,
+const LIST_COLS = `id, status, kind, source, client_name, event_date, start_time, end_time, venue_name, event_type,
   budget_pence, price_pence, extras, seen_at, quote_sent_at, quote_accepted_at, deposit_pence, deposit_paid_at, created_at`;
 
 const withTotal = (b) => ({ ...b, extras: JSON.parse(b.extras || '[]'), total_pence: quoteTotal(b) });
@@ -45,20 +45,33 @@ app.get('/calendar', async (c) => {
   return c.json(rows.map(withTotal));
 });
 
+// Add a booking by hand: a private party enquiry, or a club set (already agreed, so it starts confirmed with its fee).
 app.post('/', async (c) => {
   const db = c.env.DB;
+  const input = (await c.req.json().catch(() => null)) || {};
+  const club = input.kind === 'club';
+  if (club && !input.client_name) input.client_name = input.venue_name;
   let b;
   try {
-    b = cleanBooking((await c.req.json().catch(() => null)) || {});
+    b = cleanBooking(input);
   } catch (err) {
-    return c.json({ error: err.message }, 400);
+    return c.json({ error: club && !input.venue_name ? 'Add the club or venue' : err.message }, 400);
+  }
+  let status = 'new';
+  if (club) {
+    const fee = Math.round(Number(input.price_pence));
+    if (!Number.isFinite(fee) || fee < 0) return c.json({ error: 'Check the fee' }, 400);
+    if (!b.event_date) return c.json({ error: 'Add the date' }, 400);
+    Object.assign(b, { kind: 'club', price_pence: fee, deposit_pence: 0, event_type: b.event_type || 'Club set' });
+    status = 'confirmed';
   }
   b.client_id = await linkClient(db, { name: b.client_name, email: b.client_email, phone: b.client_phone, instagram: b.instagram });
   const ts = now();
   const cols = Object.keys(b);
   const res = await db.prepare(`INSERT INTO bookings (${cols.join(', ')}, status, source, seen_at, created_at, updated_at)
-    VALUES (${cols.map(() => '?').join(', ')}, 'new', 'manual', ?, ?, ?)`).bind(...cols.map((k) => b[k]), ts, ts, ts).run();
-  await logActivity(db, 'Enquiry added', b.client_name);
+    VALUES (${cols.map(() => '?').join(', ')}, ?, 'manual', ?, ?, ?)`).bind(...cols.map((k) => b[k]), status, ts, ts, ts).run();
+  if (club) await logActivity(db, 'Club set added', `${b.venue_name || b.client_name}: ${b.event_date}, £${(b.price_pence / 100).toFixed(2)}`);
+  else await logActivity(db, 'Enquiry added', b.client_name);
   return c.json({ id: res.meta.last_row_id });
 });
 
