@@ -1,7 +1,8 @@
 // The public press pack for promoters (/epk). No login: shows only what you've chosen in the app.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Mail, Phone, Download, Camera, Music, Video, MapPin, Play, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Mail, Phone, Download, MapPin, Play, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { zipFiles, saveBlob } from '../zip.js';
+import { Instagram, TikTok, SoundCloud, Mixcloud, YouTube } from '../brandIcons.jsx';
 
 const mediaUrl = (m) => `/api/public/press/media/${m.id}`;
 
@@ -21,8 +22,8 @@ export function linkFor(kind, value) {
 }
 
 export const LINKS = [
-  ['instagram', 'Instagram', Camera], ['tiktok', 'TikTok', Video], ['soundcloud', 'SoundCloud', Music],
-  ['mixcloud', 'Mixcloud', Music], ['youtube', 'YouTube', Video],
+  ['instagram', 'Instagram', Instagram], ['tiktok', 'TikTok', TikTok], ['soundcloud', 'SoundCloud', SoundCloud],
+  ['mixcloud', 'Mixcloud', Mixcloud], ['youtube', 'YouTube', YouTube],
 ];
 
 const sizeLabel = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(b / 1e6))} MB`);
