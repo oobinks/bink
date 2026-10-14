@@ -21,6 +21,7 @@ import Content from './pages/Content.jsx';
 import Press from './pages/Press.jsx';
 import Analytics from './pages/Analytics.jsx';
 import Trends from './pages/Trends.jsx';
+import Ask from './pages/Ask.jsx';
 import Landing from './pages/Landing.jsx';
 
 function Gate({ title, children }) {
@@ -123,6 +124,7 @@ export default function App() {
         <Route path="press" element={<Press />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="trends" element={<Trends />} />
+        <Route path="ask" element={<Ask />} />
         <Route path="content/*" element={<Content />} />
         <Route path="more" element={<More />} />
         <Route path="settings" element={<Settings />} />

@@ -195,6 +195,13 @@ or venue) from your clients, or tap **New client** to add them. Then enter the c
 After the gig, tap **Create invoice** (or **Send the invoice** on the after-gig screen). It's due on your normal payment
 terms, and the usual payment reminders chase it. The public enquiry form is unchanged and is only for private parties.
 
+**How does Ask work?**
+**More → Ask**: type a question like "Why was Jess's quote closed?" or "Who owes me money?". It answers from your own
+bookings, invoices and change history using Cloudflare's free AI (a daily allowance; past it, it just stops until the next
+day and never charges). If you ask for a change ("re-open it"), you get a button showing exactly what will change. Nothing
+happens until you tap it. It can re-open, confirm, decline or complete bookings, mark invoices paid or unpaid, and pause or
+restart reminders. It can't change how the app works.
+
 **What are Trends?**
 **More → Trends**: plain-English notes on what's changing, worked out from your own data each time you open it.
 For example: income, gigs and enquiries against the previous 3 months, your average fee, how many enquiries book,

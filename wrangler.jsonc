@@ -16,6 +16,8 @@
   "kv_namespaces": [{ "binding": "BACKUPS" }],
   // Clip and photo storage (free up to 10GB; the app stops uploads before that).
   "r2_buckets": [{ "binding": "CLIPS", "bucket_name": "ctrinn-clips" }],
+  // Cloudflare's AI for the Ask screen. Free daily allowance; on the free plan it stops (never charges) past that.
+  "ai": { "binding": "AI" },
   // 02:00 UTC nightly jobs (backup, completing past gigs); 09:00 UTC payment reminders
   // (9am in winter, 10am in summer, UK time); every hour on the hour: "time to post" clip reminders.
   "triggers": { "crons": ["0 2 * * *", "0 9 * * *", "0 * * * *"] },
@@ -23,5 +25,15 @@
   "vars": { "GITHUB_REPO": "oobinks/bink", "GMAIL_ADDRESS": "ctrinn.music@gmail.com" },
   // Keep the variables you set in the Cloudflare dashboard (ACCESS_TEAM_DOMAIN, OWNER_EMAILS).
   "keep_vars": true,
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // Only for the automatic checks on a computer (npm test / npm run dev): the same app without Cloudflare's AI,
+  // which can't run offline. The Ask screen uses a stand-in there (ASK_FAKE). Never deployed.
+  "env": {
+    "test": {
+      "d1_databases": [{ "binding": "DB", "database_name": "ctrinn-hq" }],
+      "kv_namespaces": [{ "binding": "BACKUPS" }],
+      "r2_buckets": [{ "binding": "CLIPS", "bucket_name": "ctrinn-clips" }],
+      "vars": { "GITHUB_REPO": "oobinks/bink", "GMAIL_ADDRESS": "ctrinn.music@gmail.com", "ASK_FAKE": "1" }
+    }
+  }
 }

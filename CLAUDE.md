@@ -38,6 +38,9 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
   uploads stop at 9.5GB to stay on R2's free 10GB). No auto-posting: TikTok needs an app audit, so it's share-sheet only.
 - `analytics.js` + `routes/analytics.js`: the Analytics screen's sums (income = paid invoices + deposits, as on Money).
   `trends.js` + `routes/trends.js`: the Trends screen's rule-based notes (no AI service; each note needs enough data).
+  `ask.js` + `routes/ask.js`: the Ask screen, using Workers AI (binding `AI`, free daily allowance, fails rather than bills on
+  the free plan). The AI only suggests actions; `checkActions()` validates them against real data and the app shows confirm
+  buttons that call the normal routes. Tests and `npm run dev` use `--env test` (no AI binding; `ASK_FAKE` stand-in).
 - **Public (no login):** only `routes/public.js` (booking form, quote links with Accept, invoice links, calendar
   feed, press pack, landing page) and the `/book`, `/q/:token`, `/i/:token` and `/epk` screens, plus the landing page at `/`
   for anyone not logged in (ctrinn logs in via its "DJ login" link, `/login`). Never expose anything else publicly.

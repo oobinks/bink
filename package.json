@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "vite build && wrangler dev --port 8787",
+    "dev": "vite build && wrangler dev --env test --port 8787",
     "dev:screens": "vite",
     "build": "vite build",
     "deploy": "vite build && wrangler deploy",

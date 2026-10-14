@@ -12,7 +12,7 @@ let proc;
 
 before(async () => {
   const state = fs.mkdtempSync(path.join(os.tmpdir(), 'djhq-'));
-  proc = spawn('npx', ['wrangler', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', state,
+  proc = spawn('npx', ['wrangler', 'dev', '--env', 'test', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', state,
     '--var', 'APP_PASSWORD:mirrorball-2026'], { stdio: 'ignore', detached: true });
   for (let i = 0; i < 90; i++) {
     try { await fetch(base + '/'); return; } catch { await new Promise((r) => setTimeout(r, 500)); }

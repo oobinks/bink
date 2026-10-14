@@ -53,7 +53,7 @@ function startFake() {
 before(async () => {
   startFake();
   const state = fs.mkdtempSync(path.join(os.tmpdir(), 'djhq-ideas-'));
-  proc = spawn('npx', ['wrangler', 'dev', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', state,
+  proc = spawn('npx', ['wrangler', 'dev', '--env', 'test', '--port', String(PORT), '--ip', '127.0.0.1', '--persist-to', state,
     '--var', 'DEV_BYPASS_AUTH:1', '--var', 'GITHUB_TOKEN:test-token', '--var', `GITHUB_API:http://127.0.0.1:${GH_PORT}`],
   { stdio: 'ignore', detached: true });
   for (let i = 0; i < 90; i++) {
