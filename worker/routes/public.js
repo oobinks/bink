@@ -5,7 +5,7 @@
 // - the press pack (/epk), only while it's switched on, and only the photos and clips you put on it
 // - the landing page (/ when you're not logged in): name, tagline, links to the above, socials and contact
 import { Hono } from 'hono';
-import { now, todayUK, logActivity, all } from '../db.js';
+import { now, todayUK, addDays, logActivity, all } from '../db.js';
 import { getSetting, setSetting } from '../settings.js';
 import { cleanBooking, quoteTotal } from '../booking-fields.js';
 import { notify } from '../push.js';
@@ -147,8 +147,10 @@ app.get('/quote/:token', async (c) => {
   const db = c.env.DB;
   const b = await findQuote(db, c.req.param('token'));
   if (!b) return c.json({ error: 'This quote link is no longer available. Please get in touch.' }, 404);
-  const business = await getSetting(db, 'business');
+  const [business, pricing] = await Promise.all([getSetting(db, 'business'), getSetting(db, 'pricing')]);
   const items = [{ label: 'DJ Cost', pence: b.price_pence || 0 }, ...JSON.parse(b.extras || '[]')];
+  const confirmed = ['confirmed', 'completed'].includes(b.status);
+  const depositDue = b.deposit_pence > 0 && !b.deposit_paid_at && !confirmed;
   return c.json({
     business: { djName: business.djName, legalName: business.legalName, email: business.email, phone: business.phone, address: business.address },
     vatNote: (await getSetting(db, 'invoicing')).vatNote,
@@ -165,12 +167,14 @@ app.get('/quote/:token', async (c) => {
     items,
     totalPence: quoteTotal(b),
     accepted: Boolean(b.quote_accepted_at) || ['confirmed', 'completed'].includes(b.status),
-    confirmed: ['confirmed', 'completed'].includes(b.status),
+    confirmed,
     depositPence: b.deposit_pence || 0,
     balancePence: quoteTotal(b) - (b.deposit_pence || 0),
     depositPaid: Boolean(b.deposit_paid_at),
-    // Bank details only once they've accepted and a deposit is due.
-    bank: b.quote_accepted_at && b.deposit_pence && !b.deposit_paid_at ? await bankDetails(db) : null,
+    // The deposit confirms the booking: due within N days of the quote being sent, paid by bank transfer.
+    depositDays: pricing.depositDays,
+    depositDueBy: addDays(b.quote_sent_at.slice(0, 10), pricing.depositDays),
+    bank: depositDue ? await bankDetails(db) : null,
     expired: b.event_date && b.event_date < todayUK(),
   });
 });

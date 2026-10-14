@@ -38,6 +38,7 @@ export const DEFAULT_SETTINGS = {
     travelPerMilePence: 45,
     freeMiles: 20,
     depositPence: 10000, // paid to secure the date; the balance is paid on the night
+    depositDays: 7, // the deposit is due within this many days of the quote being sent
   },
   bookingForm: {
     title: 'Private Party Booking Enquiry',

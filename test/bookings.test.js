@@ -111,7 +111,10 @@ test('the client sees the quote with the £100 deposit and balance, and can acce
   assert.equal(q.body.items.length, 3);
   assert.deepEqual(q.body.items[0], { label: 'DJ Cost', pence: 35000 }, 'first line is always "DJ Cost"');
   assert.equal(q.body.accepted, false);
-  assert.equal(q.body.bank, null, 'no bank details until accepted');
+  assert.equal(q.body.bank.sortCode, '04-00-04', 'bank details on the quote, to pay the deposit that confirms it');
+  assert.equal(q.body.depositDays, 7);
+  const sent = new Date(Date.now() + 7 * 864e5).toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+  assert.equal(q.body.depositDueBy, sent, 'deposit due 7 days after the quote was sent');
   assert.equal(q.body.business.phone, '07818543677');
   assert.equal((await call('GET', '/api/public/quote/0123456789abcdef0123456789abcdef', null, { auth: false })).status, 404);
   assert.equal((await call('POST', `/api/public/quote/${token}/accept`, null, { auth: false })).status, 200);
@@ -133,7 +136,9 @@ test('"Deposit received" confirms the booking and counts as income', async () =>
   const b = (await call('GET', `/api/bookings/${id}`)).body;
   assert.equal(b.status, 'confirmed');
   assert.ok(b.deposit_paid_at);
-  assert.equal((await call('GET', `/api/public/quote/${token}`, null, { auth: false })).body.confirmed, true);
+  const paidQuote = (await call('GET', `/api/public/quote/${token}`, null, { auth: false })).body;
+  assert.equal(paidQuote.confirmed, true);
+  assert.equal(paidQuote.bank, null, 'no bank details once the deposit is in');
   const report = (await call('GET', '/api/invoices/report')).body;
   assert.ok(report.months.at(-1).pence >= 10000, 'deposit counted this month');
 });

@@ -104,7 +104,7 @@ function QuoteBuilder({ b, pricing, onSaved }) {
 
   const shareLink = run('share', async () => {
     const url = await send();
-    const r = await shareOrCopy({ title: 'Your quote', text: `Hi ${b.client_name.split(' ')[0]}, here's your quote for ${b.event_type || 'your event'}:`, url });
+    const r = await shareOrCopy({ title: 'Your quote', text: `Hi ${b.client_name.split(' ')[0]}, here's your quote for ${b.event_type || 'your event'}.${(toPence(deposit) || 0) > 0 ? ` Your date is confirmed once the ${money(toPence(deposit))} deposit is paid, within ${pricing.depositDays || 7} days (bank details are on the quote).` : ''}`, url });
     if (r === 'copied') setMsg({ ok: true, text: 'Quote link copied. Paste it into a message.' });
   });
   const email = run('email', async () => {
@@ -112,7 +112,7 @@ function QuoteBuilder({ b, pricing, onSaved }) {
     const first = b.client_name.split(' ')[0];
     const subject = `Your DJ quote: ${b.event_type || 'event'} on ${longDate(b.event_date)}`;
     const dep = toPence(deposit) || 0;
-    const terms = dep ? `\n\nTo secure your date there's a ${money(dep)} deposit, and the balance of ${money(total - dep)} is paid on the night.` : '';
+    const terms = dep ? `\n\nYour booking is confirmed once the ${money(dep)} deposit is paid. Please pay it within ${pricing.depositDays || 7} days of receiving this quote (the bank details are on the quote). The balance of ${money(total - dep)} is paid on the night.` : '';
     const body = `Hi ${first},\n\nThanks for your enquiry! Here's your quote (${money(total)}):\n${url}${terms}\n\nYou can accept it online in one tap, and it's also downloadable as a PDF.\n\nAny questions, just reply to this email.\n\nThanks,\nctrinn`;
     window.location.href = `mailto:${b.client_email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   });

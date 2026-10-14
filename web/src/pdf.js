@@ -103,11 +103,11 @@ async function brandedPdf(d) {
   // How to pay (invoices)
   if (d.pay) {
     y -= 30;
-    const rows = [['Account name', d.pay.accountName], ['Bank', d.pay.bankName], ['Sort code', d.pay.sortCode],
+    const rows = [['Amount', d.pay.amount], ['Account name', d.pay.accountName], ['Bank', d.pay.bankName], ['Sort code', d.pay.sortCode],
       ['Account number', d.pay.accountNumber], ['Reference', d.pay.reference]].filter(([, v]) => v);
     const h = 30 + rows.length * 15;
     page.drawRectangle({ x: L, y: y - h + 12, width: R - L, height: h, color: rgb(0.965, 0.957, 0.94) });
-    text('HOW TO PAY', L + 14, y - 4, { font: bold, size: 8, color: MUTED });
+    text(d.pay.heading || 'HOW TO PAY', L + 14, y - 4, { font: bold, size: 8, color: MUTED });
     text(d.pay.terms, R - 14, y - 4, { font: bold, size: 8.5, color: [0.75, 0.2, 0.45], align: 'right' });
     rows.forEach(([k, v], i) => {
       text(k, L + 14, y - 22 - i * 15, { size: 10, color: MUTED });
@@ -150,13 +150,18 @@ export function quotePdf(q, link) {
       where: [q.venue, q.venueAddress].filter(Boolean).join(', ').replace(/\n/g, ', '),
     },
     items: q.items, totalPence: q.totalPence, vatNote: q.vatNote, message: q.message,
-    split: q.depositPence > 0 ? [['Deposit to secure your date', q.depositPence, true], ['Balance payable on the night', q.balancePence, false]] : [],
+    split: q.depositPence > 0 ? [['Deposit to confirm your booking', q.depositPence, true], ['Balance payable on the night', q.balancePence, false]] : [],
+    // The deposit confirms the booking: bank details and the pay-by date, right on the quote.
+    pay: q.depositPence > 0 && !q.depositPaid && q.bank?.sortCode
+      ? { ...q.bank, amount: gbp(q.depositPence), reference: q.quoteNumber, heading: 'PAY THE DEPOSIT TO CONFIRM',
+        terms: `DUE BY ${longDate(q.depositDueBy).toUpperCase()}` }
+      : null,
     footer: {
       heading: 'Happy to go ahead?',
       line: link ? 'Accept online in one tap:' : `Just reply to ${q.business.email} to confirm your date.`,
       link,
       small: q.depositPence > 0
-        ? `Your date is secured once the ${gbp(q.depositPence)} deposit is paid; the balance is due on the night. Questions? ${q.business.email}`
+        ? `Booking confirmed once the ${gbp(q.depositPence)} deposit is paid (within ${q.depositDays || 7} days). Balance on the night. ${q.business.email}`
         : `Your date is secured once confirmed. Questions? ${q.business.email}`,
     },
   });

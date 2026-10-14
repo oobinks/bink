@@ -213,7 +213,7 @@ function PricingTab({ settings, reload }) {
   const [presets, setPresets] = useState(p.presets.map((x) => ({ name: x.name, amount: fromPence(x.pence) })));
   const [rates, setRates] = useState({
     extraHour: fromPence(p.extraHourPence), equipment: fromPence(p.equipmentPence),
-    perMile: fromPence(p.travelPerMilePence), freeMiles: String(p.freeMiles), deposit: fromPence(p.depositPence),
+    perMile: fromPence(p.travelPerMilePence), freeMiles: String(p.freeMiles), deposit: fromPence(p.depositPence), depositDays: String(p.depositDays),
   });
   const { save, msg, busy } = useSave('pricing', reload);
   const setRate = (k) => (val) => setRates((r) => ({ ...r, [k]: val }));
@@ -222,7 +222,7 @@ function PricingTab({ settings, reload }) {
     save({
       presets: presets.filter((x) => x.name.trim()).map((x) => ({ name: x.name, pence: toPence(x.amount) ?? -1 })),
       extraHourPence: toPence(rates.extraHour) ?? '', equipmentPence: toPence(rates.equipment) ?? '',
-      travelPerMilePence: toPence(rates.perMile) ?? '', freeMiles: rates.freeMiles, depositPence: toPence(rates.deposit) ?? '',
+      travelPerMilePence: toPence(rates.perMile) ?? '', freeMiles: rates.freeMiles, depositPence: toPence(rates.deposit) ?? '', depositDays: rates.depositDays,
     });
   };
   return (
@@ -250,6 +250,8 @@ function PricingTab({ settings, reload }) {
       <h3 style={{ marginTop: 6 }}>Deposit</h3>
       <Field label="Deposit to secure a date (£)" inputMode="decimal" value={rates.deposit} onChange={setRate('deposit')}
         hint="Shown on every quote; the balance is paid on the night. Change it on any single quote, or set 0 for none." />
+      <Field label="Deposit due within (days of the quote)" inputMode="numeric" value={rates.depositDays} onChange={setRate('depositDays')}
+        hint="The quote shows the pay-by date and your bank details, and says the booking is only confirmed once it's paid." />
       <SaveBar busy={busy} msg={msg} />
     </form>
   );
