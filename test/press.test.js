@@ -111,6 +111,15 @@ test('the landing page shows public details only, and the press pack link only w
   assert.deepEqual(home.links, { instagram: '@ctrinn' });
   assert.equal(JSON.stringify(home).includes('bank'), false);
   assert.equal(home.phone, undefined, 'phone number is never on the landing page');
+  // Upcoming club nights: only club sets, only future, the next 3, and only public details.
+  const day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  for (const [venue, d] of [['Neon Rooms', 20], ['Copper Bar', 5], ['Fabric Lane', 40], ['Late Spot', 60], ['Old Club', -3]]) {
+    await call('POST', '/api/bookings', { kind: 'club', venue_name: venue, event_date: day(d), start_time: '23:00', price_pence: 30000 });
+  }
+  await call('POST', '/api/bookings', { client_name: 'Private Party', venue_name: 'Someone’s House', event_date: day(2) }); // a party: never shown
+  const clubs = (await (await anon('/api/public/home')).json()).upcomingClubs;
+  assert.deepEqual(clubs.map((c) => c.venue), ['Copper Bar', 'Neon Rooms', 'Fabric Lane']);
+  assert.deepEqual(Object.keys(clubs[0]).sort(), ['date', 'end', 'start', 'venue']);
 });
 
 test('removing a clip or switching the page off takes it down', async () => {

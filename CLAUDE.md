@@ -45,6 +45,7 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
   feed, press pack, landing page) and the `/book`, `/q/:token`, `/i/:token` and `/epk` screens, plus the landing page at `/`
   for anyone not logged in (ctrinn logs in via its "DJ login" link, `/login`). Never expose anything else publicly.
   The press pack (`/epk`) is off until `press.live` is on, and only shows clips with `in_press = 1`; the phone number only if `press.showPhone`.
+  The landing page lists the next 3 confirmed club sets (venue, date, times only); private parties are never shown publicly.
 - `web/src/`: React screens (`pages/`), `api.js` fetch helper, `format.js` money and date helpers, `styles.css`.
 - `web/src/pdf.js`: branded PDF quotes and invoices, made in the browser.
 - `test/`: Node tests. `app.test.js`, `bookings.test.js`, `invoices.test.js`, `clients.test.js`, `after-gig.test.js`, `clips.test.js`, `press.test.js` and `ideas.test.js` run the real Worker on the local simulator.

@@ -101,6 +101,10 @@ app.get('/home', async (c) => {
     email: business.email, // no phone number here: that's only on the press pack
     pressLive: Boolean(press.live),
     coverId: cover ?? null,
+    // The next 3 club nights: venue, date and set times only (never the fee, promoter or private parties).
+    upcomingClubs: await all(db.prepare(`SELECT venue_name AS venue, event_date AS date, start_time AS start, end_time AS end
+      FROM bookings WHERE kind = 'club' AND status = 'confirmed' AND is_sample = 0 AND event_date >= ?
+      ORDER BY event_date, start_time LIMIT 3`).bind(todayUK())),
   });
 });
 

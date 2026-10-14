@@ -5,6 +5,33 @@ import { PartyPopper, Newspaper, Mail, ArrowLeft, Share2 } from 'lucide-react';
 import { shareOrCopy } from '../share.js';
 import { LINKS, linkFor } from './PressPage.jsx';
 
+const clock = (t) => {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''}${h < 12 ? 'am' : 'pm'}`;
+};
+
+function ClubNights({ clubs }) {
+  return (
+    <section className="landing-gigs">
+      <h2>Upcoming club nights</h2>
+      {clubs.map((c) => {
+        const d = new Date(c.date + 'T12:00:00Z');
+        const opts = { timeZone: 'UTC' };
+        return (
+          <div key={c.date + c.venue} className="landing-gig">
+            <div className="date-chip"><b>{d.toLocaleDateString('en-GB', { ...opts, day: 'numeric' })}</b><small>{d.toLocaleDateString('en-GB', { ...opts, month: 'short' })}</small></div>
+            <div className="row-main">
+              <div className="row-title">{c.venue || 'TBA'}</div>
+              <div className="row-sub">{d.toLocaleDateString('en-GB', { ...opts, weekday: 'long' })}{c.start ? ` · ${clock(c.start)}${c.end ? `–${clock(c.end)}` : ''}` : ''}</div>
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 export default function Landing({ preview = false }) {
   const [h, setH] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -46,6 +73,7 @@ export default function Landing({ preview = false }) {
           {h.pressLive && <Link className="btn block" to="/epk"><Newspaper size={18} /> Press Pack</Link>}
           {h.email && <a className="btn block" href={`mailto:${h.email}`}><Mail size={18} /> Contact</a>}
         </nav>
+        {h.upcomingClubs?.length > 0 && <ClubNights clubs={h.upcomingClubs} />}
       </main>
       <footer className="landing-foot">{!preview && <Link to="/login">DJ login</Link>}</footer>
     </div>
