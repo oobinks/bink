@@ -277,6 +277,16 @@ function PhoneTab() {
       setState(pushSupport());
     }
   };
+  const test = async () => {
+    setMsg(null);
+    try {
+      const { sent } = await api('/push/test', { method: 'POST' });
+      setMsg(sent ? { ok: true, text: `Test sent to ${sent} ${sent === 1 ? 'device' : 'devices'}. It should arrive in a few seconds.` }
+        : { ok: false, text: 'No devices are set up for notifications yet. Tap "Turn on notifications" first.' });
+    } catch (err) {
+      setMsg({ ok: false, text: err.message });
+    }
+  };
   const webcal = cal.replace(/^https?:/, 'webcal:');
   const google = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
   return (
@@ -287,9 +297,10 @@ function PhoneTab() {
         {state === 'install-first' && <p className="lead">On iPhone, first add the app to your Home Screen (Safari → Share → Add to Home Screen), open it from there, then come back here.</p>}
         {state === 'blocked' && <p className="lead">Notifications are blocked for this app. Allow them in your phone or browser settings, then try again.</p>}
         {state === 'unsupported' && <p className="lead">This browser can't do notifications. Try Safari on iPhone or Chrome on Android.</p>}
-        {state === 'ok' && (on
-          ? <button className="btn block" onClick={enable}>✓ On. Send a test</button>
-          : <button className="btn primary block" onClick={enable}>Turn on notifications</button>)}
+        {state === 'ok' && !on && <button className="btn primary block" onClick={enable}>Turn on notifications</button>}
+        {state === 'ok' && on && <p className="lead" style={{ margin: '0 0 10px', color: 'var(--green)' }}>✓ On for this device</p>}
+        <button className="btn block" style={{ marginTop: state === 'ok' && !on ? 8 : 0 }} onClick={test}>Send a test notification</button>
+        {state === 'ok' && on && <button className="btn small" style={{ marginTop: 8 }} onClick={enable}>Not arriving? Reconnect this device</button>}
         {msg && <div className={`msg ${msg.ok ? 'ok' : 'err'}`}>{msg.text}</div>}
       </div>
       <div className="card" style={{ marginTop: 14 }}>
