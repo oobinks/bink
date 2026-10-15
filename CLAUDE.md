@@ -27,7 +27,8 @@ Changes often come from the in-app "Improve the app" chat (`.github/workflows/ap
 - `worker/`: Cloudflare Worker (Hono). `index.js` routes and nightly job, `db.js` schema and migrations,
   `auth.js` login, `routes/*.js` API endpoints, `backup.js` nightly backups, `sample-data.js` demo data,
   `booking-fields.js` booking validation, `push.js` phone notifications, `invoice-logic.js` invoice rules,
-  `reminders.js` morning payment reminders, `mail.js` Gmail sending, `clients.js` find-or-create client profiles
+  `reminders.js` morning payment reminders and the hourly "chase the deposit" push (`depositNudges`, once per quote via
+  `deposit_nudged_at`, 24h after `quote_sent_at`, 9am–9pm UK), `mail.js` Gmail sending, `clients.js` find-or-create client profiles
   (bookings and invoices carry a `client_id`; use `linkClient()` when creating them), `form-fields.js` the
   editable booking form (core questions map to booking columns; custom answers go in `bookings.answers`),
   bookings have a `kind`: 'party' (enquiry → quote → deposit) or 'club' (added by hand, starts confirmed with its fee, no

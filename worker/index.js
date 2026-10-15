@@ -18,7 +18,7 @@ import analytics from './routes/analytics.js';
 import trends from './routes/trends.js';
 import ask from './routes/ask.js';
 import { clipReminders } from './content.js';
-import { runReminders } from './reminders.js';
+import { runReminders, depositNudges } from './reminders.js';
 import { emailReady, senderAddress } from './mail.js';
 import publicRoutes, { calendarFeed, calendarToken } from './routes/public.js';
 import { getVapid, saveSubscription, notify } from './push.js';
@@ -102,8 +102,8 @@ export default {
   async scheduled(event, env, ctx) {
     await ensureSchema(env.DB);
     if (event.cron === '0 * * * *') {
-      // Every hour: "time to post" reminders for scheduled clips.
-      ctx.waitUntil(clipReminders(env));
+      // Every hour: "time to post" reminders for scheduled clips, and "chase the deposit" a day after a quote.
+      ctx.waitUntil(Promise.all([clipReminders(env), depositNudges(env)]));
       return;
     }
     if (event.cron === '0 9 * * *') {

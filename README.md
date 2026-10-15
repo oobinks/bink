@@ -190,6 +190,10 @@ logged in. On a new device, tap **DJ login** at the bottom.
 gigs played and booked ahead, your average fee, which gig types earn most, your busiest days, how many enquiries turn into
 bookings, how far ahead people book, and your best clients. Tap a column for its number, or the table button to see them all.
 
+**Will I be reminded to chase deposits?**
+Yes. 24 hours after you send a quote with a deposit, if you haven't tapped **Deposit received**, your phone gets a
+"Chase the deposit" notification (once per quote, between 9am and 9pm). Tap it to open the booking.
+
 **How do I add a club set?**
 **Bookings → Add** (or **Add booking** on Home), then tap **Club set**. Choose the client who pays you (the promoter
 or venue) from your clients, or tap **New client** to add them. Then enter the club, date, fee and set times. It goes straight into **Confirmed**, marked **Club**.

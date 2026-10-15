@@ -48,3 +48,24 @@ export async function runReminders(env, origin) {
   }
   return { sent };
 }
+
+// Hourly: a day after a quote with a deposit is sent, if you haven't tapped "Deposit received", a phone
+// reminder to chase it. Once per quote, and only between 9am and 9pm UK time (otherwise it waits).
+export async function depositNudges(env, at = new Date()) {
+  const ukHour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', hourCycle: 'h23' }).format(at));
+  if (ukHour < 9 || ukHour >= 21) return 0;
+  const dayAgo = new Date(at.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 19); // compare to the second
+  const due = await all(env.DB.prepare(`SELECT id, client_name, event_type, event_date, deposit_pence, quote_accepted_at FROM bookings
+    WHERE status = 'quoted' AND deposit_pence > 0 AND deposit_paid_at IS NULL AND deposit_nudged_at IS NULL AND is_sample = 0
+      AND quote_sent_at IS NOT NULL AND substr(quote_sent_at, 1, 19) <= ? AND (event_date IS NULL OR event_date >= ?)
+    ORDER BY quote_sent_at`).bind(dayAgo, todayUK()));
+  for (const b of due) {
+    await env.DB.prepare('UPDATE bookings SET deposit_nudged_at = ? WHERE id = ?').bind(now(), b.id).run();
+    await notify(env, {
+      title: `💷 Chase ${b.client_name}'s deposit`,
+      body: `${pounds(b.deposit_pence)} deposit not marked as received yet${b.quote_accepted_at ? ' (they accepted the quote)' : ''}. Tap to check or chase.`,
+      url: `/bookings/${b.id}`,
+    });
+  }
+  return due.length;
+}

@@ -198,6 +198,10 @@ const migrations = [
     // Booking type: 'party' (private party, via enquiry and quote) or 'club' (a club set, agreed direct, invoiced after).
     `ALTER TABLE bookings ADD COLUMN kind TEXT NOT NULL DEFAULT 'party'`,
   ],
+  [
+    // When you were reminded to chase a quote's unpaid deposit (once per quote).
+    `ALTER TABLE bookings ADD COLUMN deposit_nudged_at TEXT`,
+  ],
 ];
 
 let ready = false;
